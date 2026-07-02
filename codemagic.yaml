@@ -22,14 +22,32 @@ workflows:
           echo "Cartella www trovata"
           ls -la www
 
-      - name: Copy web files into iOS project
+            - name: Copy web files and config into iOS project
         script: |
           rm -rf ios/App/App/public
           mkdir -p ios/App/App/public
+
           cp -R www/* ios/App/App/public/
-          cp capacitor.config.json ios/App/App/public/
-          echo "File copiati in ios/App/App/public"
+
+          cp capacitor.config.json ios/App/App/public/capacitor.config.json
+          cp capacitor.config.json ios/App/App/capacitor.config.json
+
+          if [ ! -f ios/App/App/config.xml ]; then
+            cat > ios/App/App/config.xml <<'XML'
+          <?xml version='1.0' encoding='utf-8'?>
+          <widget id="it.cavalettosanita.cvls" version="1.0.0" xmlns="http://www.w3.org/ns/widgets">
+            <name>CVLS</name>
+            <description>CVLS</description>
+            <author>CVLS</author>
+          </widget>
+          XML
+          fi
+
+          echo "File web copiati in ios/App/App/public"
           ls -la ios/App/App/public
+
+          echo "File config copiati in ios/App/App"
+          ls -la ios/App/App
 
       - name: Fix Swift Package paths
         script: |
