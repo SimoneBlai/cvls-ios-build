@@ -13,7 +13,7 @@ workflows:
         script: |
           npm ci || npm install
 
-            - name: Check web app files
+      - name: Check web app files
         script: |
           if [ ! -d "www" ]; then
             echo "ERRORE: cartella www non trovata"
@@ -22,9 +22,14 @@ workflows:
           echo "Cartella www trovata"
           ls -la www
 
-      - name: Sync Capacitor iOS
+      - name: Copy web files into iOS project
         script: |
-          npx cap sync ios
+          rm -rf ios/App/App/public
+          mkdir -p ios/App/App/public
+          cp -R www/* ios/App/App/public/
+          cp capacitor.config.json ios/App/App/public/
+          echo "File copiati in ios/App/App/public"
+          ls -la ios/App/App/public
 
       - name: Show Xcode project info
         script: |
@@ -57,6 +62,10 @@ workflows:
           mkdir -p Payload
           APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" -type d | head -n 1)
           echo "APP_PATH=$APP_PATH"
+          if [ -z "$APP_PATH" ]; then
+            echo "ERRORE: nessuna .app trovata"
+            exit 1
+          fi
           cp -R "$APP_PATH" Payload/
           zip -r CVLS-unsigned.ipa Payload
 
