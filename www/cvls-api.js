@@ -355,7 +355,8 @@ async function fetchCompleteDatabaseFromSupabase() {
         { data: cantiere_allegati },
         { data: cantiere_materiali },
         { data: spese },
-        { data: richieste_modifica }
+        { data: richieste_modifica },
+        { data: bollature }
     ] = await Promise.all([
         supabase.from('citta').select('*'),
         supabase.from('presidi').select('*'),
@@ -373,7 +374,11 @@ async function fetchCompleteDatabaseFromSupabase() {
         supabase.from('cantiere_allegati').select('*').order('created_at', { ascending: true }),
         supabase.from('cantiere_materiali').select('*').order('created_at', { ascending: true }),
         supabase.from('spese').select('*').order('data', { ascending: false }),
-        supabase.from('richieste_modifica').select('*').order('created_at', { ascending: false })
+        supabase.from('richieste_modifica').select('*').order('created_at', { ascending: false }),
+        supabase.from('bollature')
+            .select('*')
+            .eq('tecnico', String(localStorage.getItem("cvls_user_name") || "").trim())
+            .order('orario', { ascending: false })
     ]);
 
     // Formatta anagrafica
@@ -484,6 +489,28 @@ async function fetchCompleteDatabaseFromSupabase() {
         });
     });
 
+    const formattedBollature = (bollature || []).map(b => ({
+        id: b.id,
+        tecnico: b.tecnico,
+        codice_completo: b.codice_completo || null,
+        tipo_bollatura: b.tipo_bollatura,
+        orario: b.orario,
+        latitudine: b.latitudine,
+        longitudine: b.longitudine,
+        stato_gps: b.stato_gps,
+        nome_sede: b.nome_sede || "",
+        cantiere_nome: b.cantiere_nome || "",
+        citta_nome: b.citta_nome || "",
+        pausa_pranzo: b.pausa_pranzo || "",
+        pausa_pranzo_minuti: b.pausa_pranzo_minuti,
+        durata_lorda_minuti: b.durata_lorda_minuti,
+        totale_lavorato_minuti: b.totale_lavorato_minuti,
+        totale_lavorato_testo: b.totale_lavorato_testo || "",
+        totale_calcolato_minuti: b.totale_calcolato_minuti,
+        totale_calcolato_testo: b.totale_calcolato_testo || "",
+        regola_calcolo: b.regola_calcolo || ""
+    }));
+
     // Formatta richieste di eliminazione suddivise per tipo
     const richiesteDispositivi = [];
     const richiesteManutenzioni = [];
@@ -556,6 +583,7 @@ async function fetchCompleteDatabaseFromSupabase() {
         note: formattedNote,
         materiali: formattedMateriali,
         allegati: formattedAllegati,
+        bollature: formattedBollature,
         richiesteEliminazione: richiesteDispositivi,
         richiesteEliminazioneManutenzioni: richiesteManutenzioni,
         richiesteEliminazioneNote: richiesteNote,
