@@ -1,0 +1,4055 @@
+:root {
+  --blue: #22b8e6;
+  --blue-dark: #1689ad;
+  --bg: #eef4fb;
+  --text: #1f2937;
+  --danger: #b91c1c;
+  --card: #ffffff;
+  --line: #e5e7eb;
+  --cvls-safe-top: env(safe-area-inset-top, 0px);
+  --cvls-topbar-extra-offset: 25px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.screen {
+  display: none;
+  min-height: 100vh;
+}
+
+.screen.active {
+  display: block;
+}
+
+/* =========================
+   AUTORIZZAZIONE
+========================= */
+
+.auth-screen {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(180deg, #eef4fb, #ffffff);
+}
+
+.auth-screen.active {
+  display: flex;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: white;
+  border-radius: 24px;
+  padding: 28px 22px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+  text-align: center;
+}
+
+.auth-logo-box {
+  margin-bottom: 14px;
+}
+
+.auth-logo {
+  width: 220px;
+  max-width: 85%;
+  height: auto;
+}
+
+.auth-card h1 {
+  margin: 6px 0 4px;
+  font-size: 30px;
+  letter-spacing: 1px;
+}
+
+.auth-subtitle {
+  margin: 0 0 26px;
+  color: var(--blue-dark);
+  font-weight: 700;
+}
+
+.field-label {
+  display: block;
+  text-align: left;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.auth-input,
+.search-input,
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #d6dce5;
+  border-radius: 12px;
+  padding: 13px 12px;
+  font-size: 15px;
+  font-family: Arial, Helvetica, sans-serif;
+  margin-bottom: 12px;
+  background: #ffffff;
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+button,
+.primary-btn,
+.secondary-btn {
+  border: 0;
+  border-radius: 12px;
+  padding: 13px 18px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+button,
+.primary-btn {
+  background: var(--blue);
+  color: white;
+}
+
+.secondary-btn {
+  background: #111827;
+  color: white;
+  margin-top: 10px;
+}
+
+button.danger,
+.danger {
+  background: var(--danger) !important;
+  color: white;
+}
+
+.auth-info {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #e5f7fd;
+  color: var(--blue-dark);
+  font-weight: 700;
+  text-align: left;
+}
+
+/* =========================
+   TOP BAR ADATTABILE
+========================= */
+
+.main-screen {
+  background: var(--bg);
+}
+
+.topbar {
+  min-height: calc(58px + var(--cvls-topbar-extra-offset) + var(--cvls-safe-top));
+  padding-top: calc(var(--cvls-topbar-extra-offset) + var(--cvls-safe-top)) !important;
+  padding-bottom: 8px;
+  padding-left: 14px;
+  padding-right: 14px;
+  background: white;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar-title {
+  min-width: 0;
+  text-align: center;
+  font-size: clamp(17px, 5vw, 22px);
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--blue-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-btn {
+  width: clamp(40px, 11vw, 46px);
+  height: clamp(40px, 11vw, 46px);
+  padding: 0;
+  border-radius: 50%;
+  font-size: clamp(20px, 6vw, 24px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue);
+  color: white;
+  flex-shrink: 0;
+}
+
+.topbar-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.sync-badge {
+  position: relative !important;
+  left: 22px !important;
+  top: 13px !important;
+  z-index: 10 !important;
+  pointer-events: none !important;
+  width: 22px !important;
+  height: 22px !important;
+  background-color: #ff0000 !important;
+  color: #000000 !important;
+  font-size: 13px !important;
+  font-weight: normal !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.sync-badge.hidden {
+  display: none !important;
+}
+
+/* =========================
+   CONTENUTO APP
+========================= */
+
+.app-content {
+  width: 100%;
+  min-height: calc(100vh - 58px);
+  background: white;
+  padding: 24px 18px 40px;
+}
+
+.logo-box {
+  text-align: center;
+  margin: 8px 0 24px;
+}
+
+.main-logo,
+.logo-box img {
+  max-width: 250px;
+  width: 80%;
+  height: auto;
+}
+
+.main-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  margin: 4px 0 14px;
+}
+
+.pill {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 24px;
+  background: #e5f7fd;
+  color: var(--blue-dark);
+  font-weight: 800;
+  font-size: 14px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  text-align: center;
+}
+
+.blue-line {
+  height: 3px;
+  background: var(--blue);
+  margin: 22px 0 24px;
+}
+
+.page {
+  display: none;
+}
+
+.page.active {
+  display: block;
+}
+
+.device-subpage {
+  display: none;
+}
+
+.device-subpage.active {
+  display: block;
+}
+
+.section-title {
+  color: var(--blue-dark);
+  font-size: 23px;
+  letter-spacing: 0.5px;
+  font-weight: 900;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.small-section-title {
+  font-size: 17px;
+}
+
+.section-spaced {
+  margin-top: 28px;
+}
+
+.thin-line {
+  border-top: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+
+.sync-status-box {
+  background: #f8fafc;
+  border: 1px solid #d8dde6;
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.path {
+  background: #111827;
+  color: white;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.admin-box {
+  margin-top: 18px;
+  border: 1px solid #d8dde6;
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.admin-title {
+  display: block;
+  font-size: 17px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.admin-status {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--danger);
+  font-weight: 800;
+}
+
+.item {
+  padding: 12px;
+  border-left: 4px solid var(--blue);
+  background: white;
+  margin-top: 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  min-height: 45px;
+}
+
+.item:hover {
+  background: #e5f7fd;
+}
+
+.item.selected,
+.selected {
+  background: #e5f7fd;
+  border-left-color: var(--blue-dark);
+}
+
+.codice {
+  color: #4b5563;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.device-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.open-btn {
+  background: var(--blue-dark);
+}
+
+.delete-btn {
+  background: var(--danger);
+  padding: 8px 12px;
+}
+
+.qr-link {
+  word-break: break-all;
+  font-size: 13px;
+  color: var(--blue-dark);
+  margin-top: 8px;
+}
+
+.round-back-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  padding: 0;
+  margin: 0 0 14px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title-row .section-title {
+  margin: 0;
+}
+
+.small-action-btn {
+  padding: 9px 14px;
+  background: var(--blue-dark);
+}
+
+/* =========================
+   SCHEDE MANUTENZIONE / CVLS
+========================= */
+
+.row {
+  display: flex;
+  align-items: center;
+  min-height: 50px;
+  border-bottom: 1px solid #eeeeee;
+  gap: 14px;
+}
+
+.label {
+  width: 42%;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.value {
+  flex: 1;
+  font-size: 16px;
+  text-align: right;
+  min-height: 24px;
+  border-bottom: 1px dashed #c7c7c7;
+  padding-top: 4px;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.edit-field {
+  flex: 1;
+}
+
+.footer {
+  text-align: center;
+  margin-top: 30px;
+  padding-top: 22px;
+  border-top: 3px solid var(--blue);
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.footer strong {
+  font-size: 22px;
+}
+
+.footer a {
+  color: #0645d9;
+  text-decoration: underline;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.nav button {
+  background: var(--blue-dark);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+th,
+td {
+  border: 1px solid #e2e2e2;
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #e5f7fd;
+  color: var(--blue-dark);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.maintenance-actions {
+  position: relative;
+  margin-top: 20px;
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.plus-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 38px;
+  line-height: 60px;
+}
+
+.checks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.check-box {
+  border: 1px solid #cfd8e3;
+  border-radius: 16px;
+  padding: 16px;
+  font-size: 20px;
+  background: #fafafa;
+}
+
+.signature-box {
+  margin-top: 14px;
+  min-height: 85px;
+  border: 1px dashed #999;
+  border-radius: 14px;
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.signature-box img {
+  max-width: 100%;
+  max-height: 80px;
+}
+
+.firma-canvas {
+  border: 1px solid #ccc;
+  background: white;
+  border-radius: 8px;
+  max-width: 100%;
+}
+
+/* =========================
+   MENU LATERALE
+========================= */
+
+.side-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 500;
+}
+
+.side-menu {
+  position: fixed;
+  top: 0;
+  left: -310px;
+  width: 300px;
+  max-width: 86vw;
+  height: 100vh;
+  background: white;
+  z-index: 600;
+  box-shadow: 18px 0 35px rgba(0, 0, 0, 0.18);
+  transition: left 0.25s ease;
+}
+
+.side-menu.open {
+  left: 0;
+}
+
+.side-menu-header {
+  min-height: calc(58px + var(--cvls-topbar-extra-offset) + var(--cvls-safe-top));
+  height: auto;
+  padding-top: calc(var(--cvls-topbar-extra-offset) + var(--cvls-safe-top)) !important;
+  padding-bottom: 8px;
+  padding-left: 14px;
+  padding-right: 14px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.side-menu-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--blue-dark);
+}
+
+.side-menu-content {
+  padding: 18px;
+  font-weight: 700;
+}
+
+.side-info {
+  margin-top: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #4b5563;
+  word-break: break-word;
+}
+
+/* =========================
+   MODAL / POPUP
+========================= */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 430px;
+  background: white;
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+.modal-card h2 {
+  margin: 0 0 12px;
+  color: var(--blue-dark);
+}
+
+.small-text {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.close-btn {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  background: #111827;
+  color: white;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.search-card {
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.search-results {
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.search-result {
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid var(--blue);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 10px;
+  background: #f9fafb;
+}
+
+.search-result-title {
+  font-weight: 900;
+  font-size: 16px;
+}
+
+.search-result-path {
+  font-size: 13px;
+  color: #4b5563;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.search-result button {
+  margin-top: 10px;
+  background: var(--blue-dark);
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 600px) {
+  .app-content {
+    padding: 22px 16px 38px;
+  }
+
+  .logo-box img,
+  .main-logo {
+    max-width: 230px;
+  }
+
+  .section-title {
+    font-size: 20px;
+  }
+
+  .row {
+    align-items: flex-start;
+    min-height: 48px;
+  }
+
+  .label {
+    width: 40%;
+    font-size: 15px;
+  }
+
+  .value {
+    font-size: 15px;
+  }
+
+  .footer {
+    font-size: 17px;
+  }
+
+  .checks {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 720px) {
+  .app-content {
+    max-width: 720px;
+    margin: 0 auto;
+    min-height: calc(100vh - 58px);
+  }
+}
+
+/* =========================================================
+   CVLS - TOPBAR DEFINITIVA / CENTRATA / RESPONSIVE
+   Aggiunta sicura: non rimuove funzioni esistenti
+========================================================= */
+
+.topbar {
+  min-height: calc(58px + var(--cvls-topbar-extra-offset) + var(--cvls-safe-top));
+  padding-top: calc(var(--cvls-topbar-extra-offset) + var(--cvls-safe-top)) !important;
+  padding-bottom: 8px;
+  padding-left: 12px;
+  padding-right: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.9);
+  position: sticky;
+  top: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: min-height 0.25s ease, padding 0.25s ease, box-shadow 0.25s ease;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.topbar-left,
+.topbar-right {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-left {
+  left: 12px;
+}
+
+.topbar-right {
+  right: 12px;
+}
+
+.topbar-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #1689ad;
+  font-weight: 900;
+  letter-spacing: 1px;
+  font-size: clamp(18px, 5vw, 22px);
+  line-height: 1;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.topbar-btn {
+  width: clamp(39px, 10.5vw, 45px);
+  height: clamp(39px, 10.5vw, 45px);
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #22b8e6;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  outline: none;
+  transition: transform 0.12s ease, filter 0.12s ease, background 0.12s ease;
+}
+
+.topbar-btn svg {
+  width: 23px;
+  height: 23px;
+  display: block;
+}
+
+.menu-icon {
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.topbar-btn:focus,
+.topbar-btn:focus-visible,
+button:focus,
+button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.topbar-btn:active,
+button:active {
+  transform: scale(0.94);
+  filter: brightness(0.96);
+}
+
+.topbar-btn:not(:active),
+button:not(:active) {
+  filter: none;
+}
+
+/* Stato sincronizzazione */
+
+.topbar.syncing {
+  min-height: 92px;
+  padding-bottom: 34px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.sync-progress-area {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 8px;
+}
+
+.sync-progress-text {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 800;
+  color: #1689ad;
+  margin-bottom: 5px;
+}
+
+.sync-progress-track {
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e5f7fd;
+}
+
+.sync-progress-bar {
+  width: 0%;
+  height: 100%;
+  border-radius: 999px;
+  background: #22b8e6;
+  transition: width 0.28s ease;
+}
+
+.sync-btn.syncing .sync-icon {
+  animation: cvlsSyncSpin 0.9s linear infinite;
+}
+
+@keyframes cvlsSyncSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Feedback leggero stile toast */
+
+.cvls-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(17, 24, 39, 0.92);
+  color: #ffffff;
+  padding: 11px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0;
+  z-index: 9999;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+}
+
+.cvls-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* =========================================================
+   CVLS - POPUP APPLE STYLE RIUTILIZZABILE
+========================================================= */
+
+.apple-modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.apple-modal-card {
+  width: 100%;
+  max-width: 390px;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 26px;
+  padding: 22px;
+  box-shadow: 0 22px 55px rgba(15, 23, 42, 0.22);
+  text-align: center;
+}
+
+.apple-modal-title {
+  margin: 0 0 8px;
+  color: #111827;
+  font-size: 21px;
+  font-weight: 900;
+}
+
+.apple-modal-message {
+  margin: 0;
+  color: #4b5563;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.apple-modal-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+}
+
+.apple-modal-actions button {
+  flex: 1;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.apple-btn-secondary {
+  background: #eef2f7 !important;
+  color: #111827 !important;
+}
+
+.apple-btn-primary {
+  background: #22b8e6 !important;
+  color: #ffffff !important;
+}
+
+/* =========================================================
+   CVLS - QR POPUP COMPATTO
+========================================================= */
+
+.qr-compact-card {
+  max-width: 360px;
+  padding: 20px;
+}
+
+.qr-compact-title {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.qr-compact-image {
+  width: min(220px, 68vw);
+  height: min(220px, 68vw);
+  display: block;
+  margin: 10px auto 12px;
+}
+
+.qr-compact-code {
+  font-size: 16px;
+  font-weight: 900;
+  color: #111827;
+  margin-top: 8px;
+}
+
+.qr-compact-link {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #1689ad;
+  word-break: break-all;
+}
+
+.qr-compact-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.qr-compact-actions button {
+  flex: 1;
+  border-radius: 14px;
+}
+
+/* =========================================================
+   SYNC TOPBAR DEFINITIVA
+   - rotella verso corretto
+   - barra avanzamento sotto le icone
+   - nessuna sovrapposizione con impostazioni
+========================================================= */
+
+.topbar {
+  overflow: visible !important;
+}
+
+.topbar.syncing {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  grid-template-rows: calc(58px + var(--cvls-topbar-extra-offset) + var(--cvls-safe-top)) 46px !important;
+  grid-template-areas:
+    "left title right"
+    "progress progress progress" !important;
+
+  min-height: calc(122px + var(--cvls-topbar-extra-offset) + var(--cvls-safe-top)) !important;
+  height: auto !important;
+
+  padding-top: calc(var(--cvls-topbar-extra-offset) + var(--cvls-safe-top)) !important;
+  padding-bottom: 14px !important;
+
+  align-items: center !important;
+  row-gap: 4px !important;
+
+  overflow: visible !important;
+}
+
+.topbar.syncing .topbar-left {
+  grid-area: left !important;
+  height: 58px !important;
+  display: flex !important;
+  align-items: center !important;
+  z-index: 3 !important;
+}
+
+.topbar.syncing .topbar-title {
+  grid-area: title !important;
+  height: 58px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  z-index: 3 !important;
+}
+
+.topbar.syncing .topbar-right {
+  grid-area: right !important;
+  height: 58px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  z-index: 3 !important;
+}
+
+.topbar.syncing .sync-progress-area {
+  grid-area: progress !important;
+
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+
+  display: block !important;
+
+  width: auto !important;
+  max-width: none !important;
+
+  margin: 2px 18px 0 18px !important;
+  padding: 0 !important;
+
+  align-self: stretch !important;
+  justify-self: stretch !important;
+
+  z-index: 1 !important;
+}
+
+.topbar.syncing .sync-progress-area.hidden {
+  display: none !important;
+}
+
+.topbar.syncing .sync-progress-text {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+
+  margin: 0 0 7px 0 !important;
+  padding: 0 2px !important;
+
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  color: #1d1d1f !important;
+}
+
+.topbar.syncing #syncProgressLabel {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+.topbar.syncing #syncProgressPercent {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.topbar.syncing .sync-progress-track {
+  width: 100% !important;
+  height: 8px !important;
+
+  border-radius: 999px !important;
+  overflow: hidden !important;
+
+  background: rgba(0, 113, 227, 0.14) !important;
+}
+
+.topbar.syncing .sync-progress-bar {
+  height: 100% !important;
+  width: 0%;
+
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, #0071e3, #5ac8fa) !important;
+
+  transition: width 0.22s ease !important;
+}
+
+.sync-btn.syncing .sync-icon {
+  animation: cvlsSyncSpinCorrect 0.85s linear infinite !important;
+  transform-origin: 50% 50% !important;
+}
+
+@keyframes cvlsSyncSpinCorrect {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+/* =========================================================
+   QR MODAL DEFINITIVO
+   - popup centrato
+   - QR ridimensionato
+   - logo non tagliato
+   - schermata adatta al telefono
+========================================================= */
+
+#qrOverlay.modal {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  padding: 18px !important;
+  background: rgba(0, 0, 0, 0.55) !important;
+
+  overflow: hidden !important;
+}
+
+#qrOverlay .qr-card {
+  width: min(92vw, 360px) !important;
+  max-width: 360px !important;
+  max-height: calc(100vh - 36px) !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+
+  padding: 20px 18px 18px !important;
+  margin: 0 !important;
+
+  background: #ffffff !important;
+  border-radius: 24px !important;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35) !important;
+
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+#qrOverlay .qr-title {
+  width: 100% !important;
+  margin: 0 0 14px !important;
+
+  text-align: center !important;
+  font-size: 18px !important;
+  line-height: 1.2 !important;
+  font-weight: 800 !important;
+  color: #111827 !important;
+}
+
+#qrOverlay .qr-image {
+  display: block !important;
+
+  width: min(70vw, 230px) !important;
+  height: min(70vw, 230px) !important;
+
+  max-width: 230px !important;
+  max-height: 230px !important;
+
+  object-fit: contain !important;
+  margin: 0 auto 18px !important;
+}
+
+#qrOverlay .qr-logo {
+  display: block !important;
+
+  width: min(66vw, 210px) !important;
+  max-width: 210px !important;
+  height: auto !important;
+
+  object-fit: contain !important;
+  margin: 0 auto 16px !important;
+
+  position: static !important;
+  transform: none !important;
+}
+
+#qrOverlay .qr-code {
+  width: 100% !important;
+  margin: 0 0 16px !important;
+
+  text-align: center !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1px !important;
+  color: #111827 !important;
+  word-break: break-word !important;
+}
+
+#qrOverlay button,
+#qrOverlay .qr-btn,
+#qrOverlay .btn {
+  width: 100% !important;
+  max-width: 260px !important;
+
+  min-height: 46px !important;
+  margin: 6px auto 0 !important;
+
+  border-radius: 999px !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
+
+/* Telefoni piccoli */
+@media (max-height: 700px) {
+  #qrOverlay .qr-card {
+    padding: 16px !important;
+  }
+
+  #qrOverlay .qr-title {
+    font-size: 16px !important;
+    margin-bottom: 10px !important;
+  }
+
+  #qrOverlay .qr-image {
+    width: 190px !important;
+    height: 190px !important;
+    margin-bottom: 12px !important;
+  }
+
+  #qrOverlay .qr-logo {
+    max-width: 170px !important;
+    margin-bottom: 12px !important;
+  }
+
+  #qrOverlay .qr-code {
+    font-size: 16px !important;
+    margin-bottom: 10px !important;
+  }
+}
+
+/* =========================================================
+   QR POPUP - PULSANTI INDIETRO / STAMPA
+========================================================= */
+
+#qrOverlay .qr-link {
+  display: none !important;
+}
+
+#qrOverlay .qr-actions {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px !important;
+  margin-top: 8px !important;
+}
+
+#qrOverlay .qr-actions button {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 48px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  cursor: pointer !important;
+  transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+#qrOverlay .qr-actions button:active {
+  transform: scale(0.96) !important;
+  filter: brightness(0.94) !important;
+}
+
+#qrOverlay .qr-btn-back {
+  background: #eef2f7 !important;
+  color: #111827 !important;
+}
+
+#qrOverlay .qr-btn-print {
+  background: linear-gradient(180deg, #22c1e8 0%, #0ea5d7 100%) !important;
+  color: white !important;
+  box-shadow: 0 8px 22px rgba(14, 165, 215, 0.25) !important;
+}
+
+/* =========================================================
+   AUTO SCROLL ARCHIVIO
+   evidenzia il blocco successivo dopo la selezione
+========================================================= */
+
+.admin-box.scroll-focus {
+  animation: cvlsScrollFocus 0.9s ease;
+}
+
+@keyframes cvlsScrollFocus {
+  0% {
+    transform: scale(0.985);
+    box-shadow: 0 0 0 rgba(0, 113, 227, 0);
+  }
+
+  35% {
+    transform: scale(1);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.18);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(0, 113, 227, 0);
+  }
+}
+
+/* =========================================================
+   FINITURA UI APP
+   - menu centrato
+   - niente selezione testi
+   - niente highlight azzurro Android
+   - popup stile Apple
+========================================================= */
+
+/* Icona tre linee centrata nel cerchio */
+#openMenuBtn.topbar-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+#openMenuBtn .menu-icon {
+  width: 22px !important;
+  height: 16px !important;
+  display: block !important;
+  position: relative !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+
+#openMenuBtn .menu-icon::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 1px !important;
+  top: 1px !important;
+  width: 20px !important;
+  height: 2.4px !important;
+  border-radius: 999px !important;
+  background: currentColor !important;
+  box-shadow:
+    0 6px 0 currentColor,
+    0 12px 0 currentColor !important;
+}
+
+/* Blocco selezione testi e highlight blu */
+html,
+body,
+* {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+input,
+textarea,
+select {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+button,
+a,
+[onclick],
+[role="button"],
+.topbar-btn,
+.primary-btn,
+.secondary-btn,
+.small-action-btn,
+.plus-btn,
+.round-back-btn,
+.close-btn {
+  -webkit-tap-highlight-color: transparent !important;
+  touch-action: manipulation !important;
+  outline: none !important;
+  user-select: none !important;
+}
+
+button:focus,
+button:active,
+a:focus,
+a:active,
+[onclick]:focus,
+[onclick]:active {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Effetto pressione unico per elementi cliccabili */
+.cvls-pressing {
+  transform: scale(0.965) !important;
+  filter: brightness(0.96) !important;
+  transition: transform 0.10s ease, filter 0.10s ease !important;
+}
+
+/* Popup Apple CVLS */
+.cvls-dialog-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 99999 !important;
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 22px !important;
+  background: rgba(0, 0, 0, 0.28) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+.cvls-dialog-overlay.show {
+  display: flex !important;
+}
+
+.cvls-dialog-card {
+  width: 100% !important;
+  max-width: 340px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-radius: 28px !important;
+  padding: 24px 20px 18px !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24) !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  text-align: center !important;
+  color: #1d1d1f !important;
+  animation: cvlsDialogIn 0.18s ease-out !important;
+}
+
+.cvls-dialog-title {
+  margin: 0 0 10px !important;
+  font-size: 21px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  color: #1d1d1f !important;
+}
+
+.cvls-dialog-message {
+  margin: 0 !important;
+  font-size: 15px !important;
+  line-height: 1.42 !important;
+  color: #6e6e73 !important;
+  white-space: pre-wrap !important;
+}
+
+.cvls-dialog-input {
+  width: 100% !important;
+  margin-top: 16px !important;
+  padding: 13px 14px !important;
+  border: 1px solid #d1d1d6 !important;
+  border-radius: 14px !important;
+  background: #f5f5f7 !important;
+  font-size: 16px !important;
+  text-align: center !important;
+  color: #1d1d1f !important;
+}
+
+.cvls-dialog-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+  margin-top: 20px !important;
+}
+
+.cvls-dialog-actions.single {
+  grid-template-columns: 1fr !important;
+}
+
+.cvls-dialog-btn {
+  min-height: 46px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.cvls-dialog-btn.cancel {
+  background: #eef2f7 !important;
+  color: #1d1d1f !important;
+}
+
+.cvls-dialog-btn.ok {
+  background: linear-gradient(180deg, #0a84ff 0%, #0071e3 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(0, 113, 227, 0.22) !important;
+}
+
+.cvls-dialog-btn:active {
+  transform: scale(0.96) !important;
+  filter: brightness(0.95) !important;
+}
+
+@keyframes cvlsDialogIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* =========================================================
+   BACK ARCHIVIO BUTTON - SIMBOLO < CENTRATO
+========================================================= */
+
+#backArchivioBtn.round-back-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+#backArchivioBtn .back-symbol {
+  display: block !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 42px !important;
+  line-height: 1 !important;
+  font-weight: 300 !important;
+  color: inherit !important;
+  transform: translateX(-1px) translateY(-4px) !important;
+  letter-spacing: -1px !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  text-rendering: geometricPrecision !important;
+}
+
+/* =========================================================
+   CENTRATURA GLOBALE ICONE NEI CERCHI
+   sistema unico per tutti i pulsanti rotondi
+========================================================= */
+
+.cvls-circle-icon-center {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  overflow: hidden !important;
+}
+
+.cvls-circle-icon-center>span,
+.cvls-circle-icon-center>i,
+.cvls-circle-icon-center>svg,
+.cvls-circle-icon-center>img {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  flex: 0 0 auto !important;
+  pointer-events: none !important;
+}
+
+/* Icone testuali normali dentro cerchio */
+.cvls-circle-icon-center:not(#openMenuBtn)>span {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Pulsante indietro stile Apple */
+#backArchivioBtn.cvls-circle-icon-center .back-symbol {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 46px !important;
+  font-weight: 450 !important;
+  line-height: 1 !important;
+  transform: translateX(-1px) translateY(-4px) !important;
+  color: inherit !important;
+}
+
+/* Menu tre linee centrato perfettamente */
+#openMenuBtn.cvls-circle-icon-center .menu-icon {
+  width: 24px !important;
+  height: 18px !important;
+  display: block !important;
+  position: relative !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+
+#openMenuBtn.cvls-circle-icon-center .menu-icon::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 2px !important;
+  top: 2px !important;
+  width: 20px !important;
+  height: 2.4px !important;
+  border-radius: 999px !important;
+  background: currentColor !important;
+  box-shadow:
+    0 6px 0 currentColor,
+    0 12px 0 currentColor !important;
+}
+
+/* Immagini o SVG dentro cerchi */
+.cvls-circle-icon-center svg,
+.cvls-circle-icon-center img {
+  max-width: 58% !important;
+  max-height: 58% !important;
+  object-fit: contain !important;
+}
+
+/* =========================================================
+   POPUP NUOVO DISPOSITIVO - STESSO STILE APPLE
+========================================================= */
+
+.cvls-dialog-form-card {
+  text-align: left !important;
+}
+
+.cvls-dialog-form-card .cvls-dialog-title,
+.cvls-dialog-form-card .cvls-dialog-message {
+  text-align: center !important;
+}
+
+.cvls-dialog-form-label {
+  display: block !important;
+  margin: 17px 2px 7px !important;
+  color: #1d1d1f !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+
+.cvls-dialog-form-control {
+  width: 100% !important;
+  min-height: 48px !important;
+  margin: 0 !important;
+  padding: 12px 14px !important;
+
+  border: 1px solid #d1d1d6 !important;
+  border-radius: 14px !important;
+
+  background: #f5f5f7 !important;
+  color: #1d1d1f !important;
+
+  font-size: 16px !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+
+  outline: none !important;
+}
+
+.cvls-dialog-form-control:focus {
+  border-color: #0a84ff !important;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.14) !important;
+}
+
+
+/* =========================================================
+   TABELLA ALLEGATI RESPONSIVE
+========================================================= */
+
+#allegatiSection {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+#allegatiTable {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+}
+
+#allegatiTable th,
+#allegatiTable td {
+  max-width: 0 !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+#allegatiTable a {
+  display: block !important;
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+}
+
+/* Tabella normale con due colonne */
+#allegatiTable:not(.delete-mode) th:nth-child(1),
+#allegatiTable:not(.delete-mode) td:nth-child(1) {
+  width: 70% !important;
+}
+
+#allegatiTable:not(.delete-mode) th:nth-child(2),
+#allegatiTable:not(.delete-mode) td:nth-child(2) {
+  width: 30% !important;
+}
+
+/* Tabella in modalità eliminazione con tre colonne */
+#allegatiTable.delete-mode th:nth-child(1),
+#allegatiTable.delete-mode td:nth-child(1) {
+  width: 58% !important;
+}
+
+#allegatiTable.delete-mode th:nth-child(2),
+#allegatiTable.delete-mode td:nth-child(2) {
+  width: 24% !important;
+}
+
+#allegatiTable.delete-mode th:nth-child(3),
+#allegatiTable.delete-mode td:nth-child(3) {
+  width: 18% !important;
+  min-width: 0 !important;
+  padding-left: 5px !important;
+  padding-right: 5px !important;
+  text-align: center !important;
+}
+
+#allegatiTable.delete-mode td:nth-child(3) .danger {
+  width: 48px !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+
+  padding: 0 !important;
+  margin: 0 auto !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border-radius: 14px !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+}
+
+
+/* =========================================================
+   ALLEGATI NATIVI MULTIPLI
+========================================================= */
+
+.attachment-picker-info {
+  margin: 14px 0 16px;
+  padding: 14px 15px;
+
+  border: 1px solid rgba(34, 184, 230, 0.28);
+  border-radius: 16px;
+
+  background: #eaf8fd;
+  color: #155e75;
+
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.attachment-action-grid {
+  width: 100%;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+
+  margin-top: 4px;
+}
+
+.attachment-action-grid button {
+  width: 100%;
+  min-width: 0;
+  min-height: 54px;
+
+  margin: 0;
+  padding: 12px 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 0;
+  border-radius: 16px;
+
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.25;
+  text-align: center;
+
+  white-space: normal;
+  overflow-wrap: anywhere;
+
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.attachment-select-btn {
+  background: linear-gradient(180deg,
+      #22b8e6 0%,
+      #1689ad 100%) !important;
+
+  color: #ffffff !important;
+
+  box-shadow:
+    0 9px 22px rgba(22, 137, 173, 0.22);
+}
+
+.attachment-camera-btn {
+  background: #111827 !important;
+  color: #ffffff !important;
+
+  box-shadow:
+    0 9px 22px rgba(17, 24, 39, 0.16);
+}
+
+.attachment-select-btn:active,
+.attachment-camera-btn:active {
+  transform: scale(0.97);
+  filter: brightness(0.95);
+}
+
+.attachment-help {
+  margin: 12px 0 18px;
+  padding: 0 2px;
+
+  color: #6b7280;
+
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+/* =========================================================
+   OVERLAY BLOCCO SINCRONIZZAZIONE
+========================================================= */
+
+.sync-blocking-overlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 2147483647;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 100%;
+
+  padding: 24px;
+
+  background: rgba(15, 23, 42, 0.62);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  pointer-events: auto;
+  touch-action: none;
+  overscroll-behavior: contain;
+
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.sync-blocking-overlay.hidden {
+  display: none !important;
+}
+
+.sync-blocking-card {
+  width: 100%;
+  max-width: 360px;
+
+  padding: 28px 22px 24px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 26px;
+
+  background: rgba(255, 255, 255, 0.97);
+
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.32);
+
+  color: #111827;
+  text-align: center;
+
+  pointer-events: none;
+}
+
+.sync-blocking-spinner {
+  width: 52px;
+  height: 52px;
+
+  margin-bottom: 18px;
+
+  border: 5px solid #dbeafe;
+  border-top-color: #1689ad;
+  border-radius: 50%;
+
+  animation: cvlsBlockingSpinner 0.85s linear infinite;
+}
+
+.sync-blocking-title {
+  margin-bottom: 9px;
+
+  color: #111827;
+
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.sync-blocking-message {
+  color: #4b5563;
+
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+html.cvls-sync-locked,
+html.cvls-sync-locked body {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+@keyframes cvlsBlockingSpinner {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 520px) {
+  .attachment-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attachment-action-grid button {
+    min-height: 52px;
+  }
+
+  .sync-blocking-overlay {
+    padding: 18px;
+  }
+
+  .sync-blocking-card {
+    max-width: 330px;
+    padding: 24px 18px 21px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-blocking-spinner {
+    animation-duration: 1.6s;
+  }
+
+  .attachment-select-btn,
+  .attachment-camera-btn {
+    transition: none !important;
+  }
+}
+
+/* =========================================================
+   PAGINA 2 - PANNELLI APRIBILI + / -
+========================================================= */
+
+.section-toggle-header {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.section-toggle-header .section-title {
+  min-width: 0;
+  margin: 0;
+
+  flex: 1;
+}
+
+.page2-toggle-btn,
+.section-toggle-btn {
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  flex: 0 0 48px;
+
+  border: 0 !important;
+  border-radius: 50% !important;
+
+  background: var(--blue) !important;
+  color: #ffffff !important;
+
+  font-size: 32px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+
+  text-align: center !important;
+
+  box-shadow:
+    0 8px 20px rgba(22, 137, 173, 0.22);
+
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.page2-toggle-btn:active,
+.section-toggle-btn:active {
+  transform: scale(0.94) !important;
+  filter: brightness(0.95) !important;
+}
+
+#addManutenzioneBox,
+#noteEditorPanel,
+#materialiEditorPanel,
+#allegatiEditorPanel {
+  margin-top: 16px;
+}
+
+#noteEditorPanel button,
+#materialiEditorPanel button,
+#allegatiEditorPanel button {
+  width: 100%;
+}
+
+#noteEditorPanel .danger,
+#materialiEditorPanel .danger,
+#allegatiEditorPanel .danger {
+  margin-top: 10px;
+}
+
+.attachment-delete-btn {
+  width: 100%;
+  margin-top: 14px;
+}
+
+
+/* =========================================================
+   STORICO MANUTENZIONE - ALLINEAMENTO PULSANTE + / -
+========================================================= */
+
+.maintenance-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.maintenance-actions #programmaManutenzioneBtn {
+  width: auto;
+  max-width: calc(100% - 64px);
+  margin-top: 0;
+}
+
+
+/* =========================================================
+   TABELLA ALLEGATI
+   - massimo cinque righe visibili
+   - scorrimento verticale e orizzontale
+   - intestazione sempre visibile
+========================================================= */
+
+.attachment-table-scroll {
+  width: 100%;
+
+  /*
+   * Circa 44 px di intestazione
+   * più cinque righe da circa 54 px.
+   */
+  max-height: 318px;
+
+  overflow-y: auto;
+  overflow-x: auto;
+
+  margin-top: 12px;
+
+  border: 1px solid #e2e2e2;
+  border-radius: 14px;
+
+  background: #ffffff;
+
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.attachment-table-scroll .allegati-table {
+  width: 100%;
+  min-width: 420px;
+
+  margin: 0;
+
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.attachment-table-scroll .allegati-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.attachment-table-scroll .allegati-table th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+
+  height: 44px;
+
+  background: #e5f7fd;
+
+  box-shadow:
+    0 1px 0 #d7e3ea;
+}
+
+.attachment-table-scroll .allegati-table tbody tr {
+  height: 54px;
+}
+
+.attachment-table-scroll .allegati-table td {
+  min-height: 54px;
+  vertical-align: middle;
+}
+
+.attachment-table-scroll .allegati-table th:first-child,
+.attachment-table-scroll .allegati-table td:first-child {
+  min-width: 210px;
+}
+
+.attachment-table-scroll .allegati-table th:nth-child(2),
+.attachment-table-scroll .allegati-table td:nth-child(2) {
+  min-width: 150px;
+}
+
+.attachment-table-scroll .allegati-table a {
+  display: inline-block;
+
+  max-width: 100%;
+
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+
+/* Indicatore visivo che la tabella può scorrere */
+
+.attachment-table-scroll::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.attachment-table-scroll::-webkit-scrollbar-track {
+  background: #eef4f7;
+}
+
+.attachment-table-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #9ccfe0;
+}
+
+
+/* =========================================================
+   RESPONSIVE PAGINA 2
+========================================================= */
+
+@media (max-width: 520px) {
+  .section-toggle-header {
+    gap: 10px;
+  }
+
+  .page2-toggle-btn,
+  .section-toggle-btn {
+    width: 46px !important;
+    min-width: 46px !important;
+    height: 46px !important;
+    min-height: 46px !important;
+
+    flex-basis: 46px;
+
+    font-size: 30px !important;
+  }
+
+  .maintenance-actions #programmaManutenzioneBtn {
+    max-width: calc(100% - 60px);
+  }
+
+  .attachment-table-scroll {
+    max-height: 318px;
+  }
+}
+
+/* =========================================================
+   RICHIESTA ELIMINAZIONE DISPOSITIVO
+   - stato persistente offline
+   - dispositivo satinato e non selezionabile
+========================================================= */
+
+.device-item {
+  position: relative;
+  overflow: hidden;
+  transition:
+    opacity 0.18s ease,
+    filter 0.18s ease,
+    background 0.18s ease;
+}
+
+.device-item.device-delete-pending {
+  cursor: default !important;
+  opacity: 0.58;
+  filter: grayscale(0.72) saturate(0.45);
+  background: linear-gradient(135deg,
+      rgba(241, 245, 249, 0.96),
+      rgba(226, 232, 240, 0.92)) !important;
+  border-left-color: #94a3b8 !important;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.22);
+}
+
+.device-item.device-delete-pending::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg,
+      rgba(255, 255, 255, 0.14),
+      rgba(148, 163, 184, 0.10));
+}
+
+.device-item.device-delete-pending button,
+.device-item button:disabled {
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  opacity: 0.52 !important;
+  filter: grayscale(1) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.delete-request-status {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.delete-request-status-in_attesa,
+.delete-request-status-autorizzato {
+  color: #854d0e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.delete-request-status-rifiutato {
+  color: #991b1b;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+.delete-request-status-eseguito {
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+}
+
+.device-item.device-delete-refused {
+  border-left-color: #dc2626;
+}
+
+/* =========================================================
+   CAMPO DATA MANUTENZIONE
+   stessa dimensione e allineamento degli altri input
+========================================================= */
+
+#mData {
+  position: relative;
+}
+
+/* Nasconde il testo automatico del campo quando è vuoto */
+#mData:invalid::-webkit-datetime-edit {
+  color: transparent;
+}
+
+/* Mostra normalmente la data dopo la selezione */
+#mData:valid::-webkit-datetime-edit {
+  color: var(--text);
+}
+
+/* Scritta Data dentro il campo vuoto */
+#mData:invalid::before {
+  content: "Data";
+
+  position: absolute;
+  left: 12px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  color: #6b7280;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1;
+
+  pointer-events: none;
+}
+
+/* Dopo la selezione rimane soltanto la data scelta */
+#mData:valid::before {
+  content: "";
+}
+
+/* Mantiene visibile e funzionante il calendario Android */
+#mData::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  cursor: pointer;
+}
+
+/* =========================================================
+   ARCHIVIO - QUATTRO ELEMENTI VISIBILI
+   Città, presidi, ubicazioni e dispositivi restano
+   scorribili senza allungare tutta la pagina.
+========================================================= */
+
+.archive-list-scroll {
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding-right: 5px;
+
+  overscroll-behavior-y: contain;
+  touch-action: none;
+  -webkit-overflow-scrolling: touch;
+
+  scrollbar-width: thin;
+  scrollbar-color: #9ccfe0 #eef4f7;
+}
+
+.archive-list-scroll::-webkit-scrollbar {
+  width: 7px;
+}
+
+.archive-list-scroll::-webkit-scrollbar-track {
+  background: #eef4f7;
+  border-radius: 999px;
+}
+
+.archive-list-scroll::-webkit-scrollbar-thumb {
+  background: #9ccfe0;
+  border-radius: 999px;
+}
+
+.archive-list-scroll::-webkit-scrollbar-thumb:active {
+  background: #65b9d2;
+}
+
+/* Campo data programmazione manutenzione con scritta Data */
+#pmData {
+  position: relative;
+}
+
+/* Nasconde il formato automatico quando il campo è vuoto */
+#pmData:invalid::-webkit-datetime-edit {
+  color: transparent;
+}
+
+/* Mostra la data normalmente dopo la selezione */
+#pmData:valid::-webkit-datetime-edit {
+  color: var(--text);
+}
+
+/* Mostra la scritta Data dentro il campo vuoto */
+#pmData:invalid::before {
+  content: "Data";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Nasconde la scritta dopo aver scelto una data */
+#pmData:valid::before {
+  content: "";
+}
+
+/* Mantiene visibile e funzionante il calendario Android */
+#pmData::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  cursor: pointer;
+}
+
+/* =========================================================
+   TABELLE STORICO MANUTENZIONI - STILE APPLE
+   massimo 4 righe visibili, intestazione fissa
+========================================================= */
+
+.maintenance-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+
+  overflow-y: auto;
+  overflow-x: auto;
+
+  margin-top: 12px;
+
+  border: 1px solid #d1d1d6;
+  border-radius: 16px;
+
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+
+  overscroll-behavior: contain;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+
+  scrollbar-width: thin;
+  scrollbar-color: #9ccfe0 #eef4f7;
+}
+
+.maintenance-table-scroll::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.maintenance-table-scroll::-webkit-scrollbar-track {
+  background: #eef4f7;
+}
+
+.maintenance-table-scroll::-webkit-scrollbar-thumb {
+  background: #9ccfe0;
+  border-radius: 999px;
+}
+
+.maintenance-apple-table {
+  width: 100%;
+  margin: 0;
+
+  border-collapse: separate;
+  border-spacing: 0;
+
+  background: #ffffff;
+  color: #1d1d1f;
+  font-size: 14px;
+}
+
+.maintenance-apple-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+.maintenance-apple-table th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+
+  height: 44px;
+  padding: 10px 12px;
+
+  border: 0 !important;
+  border-right: 1px solid #d7e3ea !important;
+  border-bottom: 1px solid #d7e3ea !important;
+
+  background: #e5f7fd;
+  color: #1689ad;
+
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.maintenance-apple-table td {
+  height: 54px;
+  padding: 10px 12px;
+
+  border: 0 !important;
+  border-right: 1px solid #e5e5ea !important;
+  border-bottom: 1px solid #e5e5ea !important;
+
+  background: #ffffff;
+  color: #1d1d1f;
+
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.maintenance-apple-table tbody tr:nth-child(even) td {
+  background: #fafafa;
+}
+
+.maintenance-apple-table th:last-child,
+.maintenance-apple-table td:last-child {
+  border-right: 0 !important;
+}
+
+.maintenance-apple-table tbody tr:last-child td {
+  border-bottom: 0 !important;
+}
+
+.maintenance-apple-table a {
+  display: block;
+  max-width: 100%;
+  color: #0a84ff;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.maintenance-apple-table .danger {
+  min-height: 42px;
+  margin: 0 auto;
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+
+#manutenzioniTable {
+  min-width: 690px;
+}
+
+#noteTable {
+  min-width: 420px;
+}
+
+#materialiTable {
+  min-width: 690px;
+}
+
+#allegatiTable {
+  min-width: 420px;
+}
+
+.cvls-edit-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.cvls-inline-input,
+.cvls-inline-select {
+  width: 100%;
+  max-width: 260px;
+  border: 1px solid rgba(120, 120, 128, 0.28);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.92);
+  outline: none;
+}
+
+.cvls-inline-input:focus,
+.cvls-inline-select:focus {
+  border-color: rgba(0, 122, 255, 0.7);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.14);
+}
+
+#cvlsFirmaBox.editing {
+  min-height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#cvlsFirmaBox.editing canvas {
+  background: #ffffff;
+}
+
+.cvls-o2-header-btn {
+  min-width: auto;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cvls-inline-input,
+.cvls-inline-select {
+  width: 100%;
+  max-width: 260px;
+  border: 1px solid rgba(120, 120, 128, 0.28);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.96);
+  outline: none;
+  pointer-events: auto !important;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
+}
+
+.cvls-inline-input:focus,
+.cvls-inline-select:focus {
+  border-color: rgba(0, 122, 255, 0.7);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.14);
+}
+
+#cvlsFirmaBox.editing {
+  min-height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#cvlsFirmaBox.editing canvas {
+  background: #ffffff;
+  pointer-events: auto !important;
+  touch-action: none;
+}
+
+/* =========================
+   ETICHETTA O2 - TOP ACTIONS
+========================= */
+
+.device-top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin: 8px 0 12px;
+}
+
+#backArchivioBtn.round-back-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 500;
+  padding: 0 0 3px 0;
+}
+
+.cvls-o2-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cvls-o2-action-btn {
+  width: auto !important;
+  height: auto !important;
+  min-width: 82px;
+  border-radius: 14px !important;
+  border: none;
+  padding: 9px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.cvls-o2-action-btn.cvls-circle-icon-center {
+  width: auto !important;
+  height: auto !important;
+  border-radius: 14px !important;
+}
+
+/* =========================
+   ETICHETTA O2 - CAMPI INLINE
+========================= */
+
+.cvls-inline-input,
+.cvls-inline-select {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  max-width: 260px;
+  border: 1px solid rgba(120, 120, 128, 0.28);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.96);
+  outline: none;
+  pointer-events: auto !important;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
+}
+
+.cvls-inline-input:focus,
+.cvls-inline-select:focus {
+  border-color: rgba(0, 122, 255, 0.7);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.14);
+}
+
+/* =========================
+   ETICHETTA O2 - FIRMA
+========================= */
+
+#cvlsFirmaBox.editing {
+  position: relative;
+  z-index: 5;
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto !important;
+  touch-action: none;
+}
+
+#cvlsFirmaBox.editing canvas {
+  width: 300px;
+  max-width: 100%;
+  height: 120px;
+  background: #ffffff;
+  pointer-events: auto !important;
+  touch-action: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* =========================
+   ETICHETTA O2 - TIPOLOGIA CELLA
+========================= */
+
+.cvls-tipologia-picker {
+  position: relative;
+  z-index: 20;
+  width: 100%;
+  max-width: 280px;
+}
+
+.cvls-tipologia-button {
+  width: 100%;
+  border: 1px solid rgba(120, 120, 128, 0.28);
+  border-radius: 14px;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.96);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  color: #111827;
+}
+
+.cvls-tipologia-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 999;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.18);
+  border: 1px solid rgba(120, 120, 128, 0.22);
+  padding: 8px;
+}
+
+.cvls-tipologia-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid rgba(120, 120, 128, 0.14);
+}
+
+.cvls-tipologia-row:last-of-type {
+  border-bottom: none;
+}
+
+.cvls-tipologia-choice {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 8px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.cvls-tipologia-delete {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 59, 48, 0.12);
+  color: #c1272d;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.cvls-tipologia-add-box {
+  display: flex;
+  gap: 6px;
+  padding-top: 8px;
+  margin-top: 6px;
+  border-top: 1px solid rgba(120, 120, 128, 0.14);
+}
+
+.cvls-tipologia-new-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid rgba(120, 120, 128, 0.28);
+  border-radius: 12px;
+  padding: 8px 9px;
+  font-size: 14px;
+  background: #ffffff;
+}
+
+.cvls-tipologia-add-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* =========================
+   FIX TIPOLOGIA CELLA
+========================= */
+
+/* X centrata nel cerchio */
+.cvls-tipologia-delete {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+}
+
+/* Campo nuova tipologia + tasto Aggiungi stessa altezza */
+.cvls-tipologia-add-box {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 6px;
+}
+
+.cvls-tipologia-new-input,
+.cvls-tipologia-add-btn {
+  height: 38px !important;
+  box-sizing: border-box !important;
+}
+
+.cvls-tipologia-add-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 12px !important;
+  line-height: 1 !important;
+}
+
+/* Elimina trattini vicino ai campi compilabili nella scheda O2 */
+#cvlsBox .value::before,
+#cvlsBox .value::after,
+#cvlsBox .row::before,
+#cvlsBox .row::after {
+  content: none !important;
+  display: none !important;
+}
+
+#cvlsBox .value,
+#cvlsBox .row {
+  list-style: none !important;
+}
+
+/* =========================
+   FIX TRATTINI CAMPI EDIT O2
+========================= */
+
+/* Quando la scheda O2 è in modifica, i contenitori dei valori
+   non devono generare trattini, separatori o pseudo-elementi */
+#cvlsBox .value:has(.cvls-inline-input)::before,
+#cvlsBox .value:has(.cvls-inline-input)::after,
+#cvlsBox .value:has(.cvls-inline-select)::before,
+#cvlsBox .value:has(.cvls-inline-select)::after,
+#cvlsBox .value:has(.cvls-tipologia-picker)::before,
+#cvlsBox .value:has(.cvls-tipologia-picker)::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Pulizia generale dei contenitori campo in modifica */
+#cvlsBox .value:has(.cvls-inline-input),
+#cvlsBox .value:has(.cvls-inline-select),
+#cvlsBox .value:has(.cvls-tipologia-picker) {
+  background-image: none !important;
+  text-decoration: none !important;
+  border-left: none !important;
+}
+
+/* Evita trattini/separatori anche sugli input/select stessi */
+#cvlsBox .cvls-inline-input::before,
+#cvlsBox .cvls-inline-input::after,
+#cvlsBox .cvls-inline-select::before,
+#cvlsBox .cvls-inline-select::after,
+#cvlsBox .cvls-tipologia-picker::before,
+#cvlsBox .cvls-tipologia-picker::after,
+#cvlsBox .cvls-month-date-picker::before,
+#cvlsBox .cvls-month-date-picker::after,
+#cvlsBox .cvls-month-date-display::before,
+#cvlsBox .cvls-month-date-display::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* =========================
+   FIX DEFINITIVO LINEE TRATTEGGIATE ETICHETTA O2
+========================= */
+
+#cvlsBox .row {
+  border-bottom: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+#cvlsBox .value {
+  border-bottom: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+}
+
+#cvlsBox .value:has(.cvls-inline-input),
+#cvlsBox .value:has(.cvls-inline-select),
+#cvlsBox .value:has(.cvls-tipologia-picker),
+#cvlsBox .value:has(.cvls-month-date-picker),
+#cvlsBox .value.cvls-edit-value {
+  border-bottom: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+}
+
+#cvlsBox .signature-box {
+  border: 1px solid rgba(120, 120, 128, 0.28) !important;
+  background: #fafafa !important;
+}
+
+#cvlsBox .firma-canvas {
+  border: 1px solid rgba(120, 120, 128, 0.28) !important;
+}
+
+/* =========================
+   ETICHETTA O2 - DATE MESE/ANNO
+========================= */
+
+.cvls-month-date-picker {
+  position: relative;
+  width: 100%;
+  max-width: 260px;
+}
+
+.cvls-month-date-button {
+  width: 100%;
+  height: 38px;
+  border: 1px solid rgba(120, 120, 128, 0.28);
+  border-radius: 12px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.96);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  color: #111827;
+}
+
+.cvls-month-date-button.placeholder {
+  color: rgba(60, 60, 67, 0.55);
+}
+
+.cvls-month-date-native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 38px;
+  opacity: 0;
+  z-index: 5;
+  border: none;
+  pointer-events: auto;
+}
+
+/* =========================
+   FIX ETICHETTA O2 - DATE SOLO MM/AAAA
+========================= */
+
+.cvls-month-date-picker {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 260px !important;
+}
+
+.cvls-month-date-display {
+  width: 100% !important;
+  height: 38px !important;
+  box-sizing: border-box !important;
+  border: 1px solid rgba(120, 120, 128, 0.28) !important;
+  border-radius: 12px !important;
+  padding: 0 10px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: #111827 !important;
+  text-align: left !important;
+  outline: none !important;
+}
+
+.cvls-month-date-display::placeholder {
+  color: rgba(60, 60, 67, 0.55) !important;
+}
+
+/* Il calendario nativo resta presente solo per aprire il picker,
+   ma non deve mai essere visibile nella pagina */
+.cvls-month-date-native {
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+/* Nasconde il vecchio pulsante blu se rimane da cache o vecchia renderizzazione */
+.cvls-month-date-button {
+  display: none !important;
+}
+
+/* =========================
+   ETICHETTA O2 - CAMPI VISIBILI MA BLOCCATI
+========================= */
+
+#cvlsBox.cvls-readonly-mode input:disabled,
+#cvlsBox.cvls-readonly-mode select:disabled,
+#cvlsBox.cvls-readonly-mode textarea:disabled,
+#cvlsBox.cvls-readonly-mode button:disabled {
+  opacity: 1 !important;
+  color: #1f2937 !important;
+  -webkit-text-fill-color: #1f2937 !important;
+  background: #ffffff !important;
+  border-color: #d6dce5 !important;
+}
+
+/* Separazione leggera tra i campi O2 */
+#cvlsBox .row {
+  border-bottom: 1px solid rgba(229, 231, 235, 0.95) !important;
+}
+
+/* Nessuna linea tratteggiata dentro il valore */
+#cvlsBox .value,
+#cvlsBox .value.cvls-edit-value {
+  border-bottom: 0 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* La riga Firma non deve creare doppie linee strane */
+#cvlsBox .row:has(+ .signature-box) {
+  border-bottom: 1px solid rgba(229, 231, 235, 0.95) !important;
+}
+
+/* =========================
+   ETICHETTA O2 - ALLINEAMENTO RIGHE
+========================= */
+
+#cvlsBox .row {
+  display: grid !important;
+  grid-template-columns: 148px minmax(0, 1fr) !important;
+  align-items: center !important;
+  column-gap: 14px !important;
+  min-height: auto !important;
+  padding: 10px 0 !important;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.95) !important;
+}
+
+#cvlsBox .label {
+  width: auto !important;
+  margin: 0 !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+#cvlsBox .value {
+  width: 100% !important;
+  min-height: 0 !important;
+  padding-top: 0 !important;
+  text-align: left !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* I campi inline non devono avere margini verticali */
+#cvlsBox .cvls-inline-input,
+#cvlsBox .cvls-inline-select,
+#cvlsBox .cvls-month-date-display,
+#cvlsBox .cvls-tipologia-button,
+#cvlsBox .cvls-tipologia-new-input {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+#cvlsBox .cvls-month-date-picker,
+#cvlsBox .cvls-tipologia-picker {
+  width: 100% !important;
+}
+
+/* Sensori: box più compatti e puliti */
+#cvlsBox .checks {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 14px !important;
+  margin-top: 10px !important;
+}
+
+#cvlsBox .check-box {
+  padding: 14px !important;
+}
+
+#cvlsBox .check-box .cvls-inline-select {
+  margin: 0 !important;
+}
+
+/* Righe con label lunga su 2 righe */
+#cvlsBox .row .label br {
+  display: none;
+}
+
+/* Piccolo adattamento mobile */
+@media (max-width: 600px) {
+  #cvlsBox .row {
+    grid-template-columns: 146px minmax(0, 1fr) !important;
+    column-gap: 12px !important;
+  }
+
+  #cvlsBox .label {
+    font-size: 15px !important;
+  }
+}
+
+/* =========================
+   SCHEDA MANUTENZIONE - CAMPI SEMPRE VISIBILI
+========================= */
+
+#manutenzioneBox #page1 #viewTecnica {
+  display: none !important;
+}
+
+#manutenzioneBox #page1 #editTecnica {
+  display: block !important;
+}
+
+/* Righe caratteristiche tecniche */
+#manutenzioneBox #page1 #editTecnica .row {
+  display: grid !important;
+  grid-template-columns: 148px minmax(0, 1fr) !important;
+  align-items: center !important;
+  column-gap: 14px !important;
+  min-height: auto !important;
+  padding: 10px 0 !important;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.95) !important;
+}
+
+/* Label allineate */
+#manutenzioneBox #page1 #editTecnica .label {
+  width: auto !important;
+  margin: 0 !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+/* Contenitore campo */
+#manutenzioneBox #page1 #editTecnica .edit-field {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Campi senza margini strani */
+#manutenzioneBox #page1 #editTecnica input,
+#manutenzioneBox #page1 #editTecnica select {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+/* Campi bloccati ma visivamente normali */
+#manutenzioneBox #page1 #editTecnica.tecnica-readonly-mode input:disabled,
+#manutenzioneBox #page1 #editTecnica.tecnica-readonly-mode select:disabled,
+#manutenzioneBox #page1 #editTecnica.tecnica-readonly-mode textarea:disabled {
+  opacity: 1 !important;
+  color: #1f2937 !important;
+  -webkit-text-fill-color: #1f2937 !important;
+  background: #ffffff !important;
+  border-color: #d6dce5 !important;
+}
+
+/* Niente linee tratteggiate nella scheda manutenzione */
+#manutenzioneBox #page1 .value {
+  border-bottom: 0 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  #manutenzioneBox #page1 #editTecnica .row {
+    grid-template-columns: 146px minmax(0, 1fr) !important;
+    column-gap: 12px !important;
+  }
+
+  #manutenzioneBox #page1 #editTecnica .label {
+    font-size: 15px !important;
+  }
+}
+
+/* =========================
+   BACK BUTTON DEFINITIVO
+   centratura freccia dentro cerchio
+========================= */
+
+.round-back-btn {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+
+  padding: 0 !important;
+  margin: 0 0 14px 0 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  position: relative !important;
+  overflow: hidden !important;
+
+  border: 0 !important;
+  border-radius: 50% !important;
+
+  background: #22b8e6 !important;
+  color: #ffffff !important;
+
+  font-size: 0 !important;
+  line-height: 0 !important;
+
+  flex: 0 0 48px !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Nasconde il vecchio simbolo testuale ‹ che crea disallineamenti */
+.round-back-btn .back-symbol {
+  display: none !important;
+}
+
+/* Disegna una freccia perfettamente centrata, indipendente dal font */
+.round-back-btn::before {
+  content: "" !important;
+
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+
+  width: 14px !important;
+  height: 14px !important;
+
+  border-left: 3px solid currentColor !important;
+  border-bottom: 3px solid currentColor !important;
+
+  transform: translate(-35%, -50%) rotate(45deg) !important;
+  transform-origin: center !important;
+}
+
+/* Pressione pulita */
+.round-back-btn:active {
+  transform: scale(0.94) !important;
+  filter: brightness(0.96) !important;
+}
+
+/* =========================
+   BACK BUTTON - ELIMINA VECCHIA FRECCIA TESTUALE
+========================= */
+
+#backArchivioBtn.round-back-btn .back-symbol,
+#backArchivioBtn.cvls-circle-icon-center .back-symbol,
+.round-back-btn.cvls-circle-icon-center .back-symbol,
+.round-back-btn .back-symbol {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+/* =========================
+   ETICHETTA O2 - FRECCIA TIPOLOGIA CELLA
+========================= */
+
+#cvlsBox .cvls-tipologia-button {
+  position: relative !important;
+  text-align: left !important;
+  padding-right: 42px !important;
+}
+
+/* Freccetta verso il basso */
+#cvlsBox .cvls-tipologia-button::after {
+  content: "" !important;
+  position: absolute !important;
+  right: 16px !important;
+  top: 50% !important;
+
+  width: 6px !important;
+  height: 6px !important;
+
+  border-right: 2px solid #1f2937 !important;
+  border-bottom: 2px solid #1f2937 !important;
+
+  transform: translateY(-65%) rotate(45deg) !important;
+  pointer-events: none !important;
+}
+
+/* Freccia visibile anche quando il campo è bloccato */
+#cvlsBox.cvls-readonly-mode .cvls-tipologia-button::after {
+  border-color: #1f2937 !important;
+  opacity: 1 !important;
+}
+
+/* =========================
+   ETICHETTA O2 - FRECCIA CAMPI DATA SCADENZE
+========================= */
+
+#cvlsBox .cvls-month-date-picker {
+  position: relative !important;
+  width: 100% !important;
+}
+
+#cvlsBox .cvls-month-date-display {
+  padding-right: 42px !important;
+}
+
+/* Freccetta verso il basso sui campi mese/anno */
+#cvlsBox .cvls-month-date-picker::after {
+  content: "" !important;
+  display: block !important;
+
+  position: absolute !important;
+  right: 16px !important;
+  top: 50% !important;
+
+  width: 6px !important;
+  height: 6px !important;
+
+  border-right: 2px solid #1f2937 !important;
+  border-bottom: 2px solid #1f2937 !important;
+
+  transform: translateY(-65%) rotate(45deg) !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+}
+
+/* Freccia visibile anche quando il campo è bloccato */
+#cvlsBox.cvls-readonly-mode .cvls-month-date-picker::after {
+  border-color: #1f2937 !important;
+  opacity: 1 !important;
+}
+
+/* =========================
+   FRECCIA UNICA APP - DEFINITIVA
+   riferimento grafico: campi data SCADENZE
+========================= */
+
+:root {
+  --cvls-arrow-size: 8px;
+  --cvls-arrow-stroke: 2px;
+  --cvls-arrow-color: #1f2937;
+  --cvls-arrow-right: 16px;
+  --cvls-arrow-pad-right: 42px;
+}
+
+/* =========================
+   SELECT NATIVI
+========================= */
+
+select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+
+  padding-right: var(--cvls-arrow-pad-right) !important;
+
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.25 4.5 6 8.25 9.75 4.5' fill='none' stroke='%231f2937' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 12px 12px !important;
+}
+
+select::-ms-expand {
+  display: none !important;
+}
+
+/* Anche quando il select è bloccato deve restare identico */
+select:disabled {
+  opacity: 1 !important;
+  -webkit-text-fill-color: #1f2937 !important;
+}
+
+/* =========================
+   CAMPO CUSTOM: TIPOLOGIA CELLA
+========================= */
+
+#cvlsBox .cvls-tipologia-button {
+  position: relative !important;
+  text-align: left !important;
+  padding-right: var(--cvls-arrow-pad-right) !important;
+}
+
+#cvlsBox .cvls-tipologia-button::after {
+  content: "" !important;
+  position: absolute !important;
+  right: var(--cvls-arrow-right) !important;
+  top: 50% !important;
+
+  width: var(--cvls-arrow-size) !important;
+  height: var(--cvls-arrow-size) !important;
+
+  border-right: var(--cvls-arrow-stroke) solid var(--cvls-arrow-color) !important;
+  border-bottom: var(--cvls-arrow-stroke) solid var(--cvls-arrow-color) !important;
+
+  transform: translateY(-65%) rotate(45deg) !important;
+  pointer-events: none !important;
+}
+
+/* =========================
+   CAMPI CUSTOM: DATA SCADENZE O2
+========================= */
+
+#cvlsBox .cvls-month-date-picker {
+  position: relative !important;
+  width: 100% !important;
+}
+
+#cvlsBox .cvls-month-date-display {
+  padding-right: var(--cvls-arrow-pad-right) !important;
+}
+
+#cvlsBox .cvls-month-date-picker::after {
+  content: "" !important;
+  position: absolute !important;
+  right: var(--cvls-arrow-right) !important;
+  top: 50% !important;
+
+  width: var(--cvls-arrow-size) !important;
+  height: var(--cvls-arrow-size) !important;
+
+  border-right: var(--cvls-arrow-stroke) solid var(--cvls-arrow-color) !important;
+  border-bottom: var(--cvls-arrow-stroke) solid var(--cvls-arrow-color) !important;
+
+  transform: translateY(-65%) rotate(45deg) !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+}
+
+/* =========================
+   FRECCIA UNICA APP - FIX DATE E DISABLED
+========================= */
+
+/* Anche gli input data devono avere la stessa freccia dei select */
+input[type="date"] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+
+  padding-right: var(--cvls-arrow-pad-right) !important;
+
+  background-color: #ffffff !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.25 4.5 6 8.25 9.75 4.5' fill='none' stroke='%231f2937' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 12px 12px !important;
+}
+
+/* Nasconde la freccia/calendario nativa, che è diversa dalle altre */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0 !important;
+}
+
+/* I select disabilitati devono mantenere la stessa freccia */
+select:disabled,
+#cvlsBox.cvls-readonly-mode select:disabled,
+#manutenzioneBox select:disabled {
+  opacity: 1 !important;
+  color: #1f2937 !important;
+  -webkit-text-fill-color: #1f2937 !important;
+
+  background-color: #ffffff !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.25 4.5 6 8.25 9.75 4.5' fill='none' stroke='%231f2937' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 12px 12px !important;
+}
+
+/* Anche gli input data disabilitati restano visivamente normali */
+input[type="date"]:disabled,
+#cvlsBox.cvls-readonly-mode input[type="date"]:disabled,
+#manutenzioneBox input[type="date"]:disabled {
+  opacity: 1 !important;
+  color: #1f2937 !important;
+  -webkit-text-fill-color: #1f2937 !important;
+
+  background-color: #ffffff !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.25 4.5 6 8.25 9.75 4.5' fill='none' stroke='%231f2937' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 12px 12px !important;
+}
+
+/* =========================
+   ETICHETTA O2 - SENSORI CHECKBOX RIPRISTINATI
+========================= */
+
+#cvlsBox .cvls-inline-check-toggle {
+  width: 100% !important;
+  min-height: 48px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+
+  padding: 10px 14px !important;
+  margin: 0 !important;
+
+  border: 1px solid #d6dce5 !important;
+  border-radius: 12px !important;
+
+  background: #ffffff !important;
+  color: #1f2937 !important;
+
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  text-align: left !important;
+
+  box-shadow: none !important;
+}
+
+#cvlsBox .cvls-inline-check-box {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border: 2px solid #1f2937 !important;
+  border-radius: 6px !important;
+
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+#cvlsBox .cvls-inline-check-toggle.checked .cvls-inline-check-box {
+  background: #22b8e6 !important;
+  border-color: #22b8e6 !important;
+  color: #ffffff !important;
+}
+
+#cvlsBox .cvls-inline-check-label {
+  flex: 1 !important;
+}
+
+#cvlsBox.cvls-readonly-mode .cvls-inline-check-toggle:disabled {
+  opacity: 1 !important;
+  color: #1f2937 !important;
+  -webkit-text-fill-color: #1f2937 !important;
+  background: #ffffff !important;
+  border-color: #d6dce5 !important;
+}
+
+/* =========================
+   FOOTER - CONTATTI NON CLICCABILI
+   evita errore mailto/tel nella WebView
+========================= */
+
+.footer a,
+.footer a:visited,
+.footer a:hover,
+.footer a:active {
+  pointer-events: none !important;
+  cursor: default !important;
+
+  color: inherit !important;
+  text-decoration: none !important;
+
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* =========================
+   MENU CONTESTUALE PRESSIONE LUNGA
+========================= */
+
+.cvls-action-menu-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 99999 !important;
+
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+
+  padding: 18px !important;
+  background: rgba(0, 0, 0, 0.28) !important;
+
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+.cvls-action-menu-card {
+  width: 100% !important;
+  max-width: 390px !important;
+
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-radius: 26px !important;
+
+  padding: 14px !important;
+  margin-bottom: env(safe-area-inset-bottom) !important;
+
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28) !important;
+  animation: cvlsActionMenuIn 0.18s ease-out !important;
+}
+
+.cvls-action-menu-title {
+  padding: 10px 12px 14px !important;
+  text-align: center !important;
+
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  color: #6b7280 !important;
+}
+
+.cvls-action-menu-btn {
+  width: 100% !important;
+  min-height: 50px !important;
+
+  margin: 0 0 8px 0 !important;
+  padding: 12px 16px !important;
+
+  border: 0 !important;
+  border-radius: 16px !important;
+
+  background: #eef2f7 !important;
+  color: #111827 !important;
+
+  font-size: 17px !important;
+  font-weight: 850 !important;
+  text-align: center !important;
+
+  box-shadow: none !important;
+}
+
+.cvls-action-menu-btn.danger {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+.cvls-action-menu-btn.cancel {
+  margin-top: 6px !important;
+  margin-bottom: 0 !important;
+
+  background: #111827 !important;
+  color: #ffffff !important;
+}
+
+.cvls-action-menu-btn:active {
+  transform: scale(0.97) !important;
+  filter: brightness(0.96) !important;
+}
+
+@keyframes cvlsActionMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.device-longpress-zone {
+  border-radius: 14px !important;
+  padding: 2px 2px 6px !important;
+  cursor: pointer !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.device-longpress-zone:active {
+  background: rgba(34, 184, 230, 0.08) !important;
+}
+
+tr.cvls-longpress-active,
+.cvls-longpress-active {
+  background: rgba(34, 184, 230, 0.14) !important;
+  transform: scale(0.995) !important;
+  transition: background 0.12s ease, transform 0.12s ease !important;
+}
+
+.cvls-edit-row-card {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+.cvls-edit-row-input {
+  width: 100% !important;
+  min-height: 46px !important;
+  border: 1px solid rgba(148, 163, 184, 0.55) !important;
+  border-radius: 14px !important;
+  padding: 10px 12px !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+  background: #ffffff !important;
+  box-sizing: border-box !important;
+}
+
+tr.cvls-delete-request-pending {
+  background: rgba(229, 231, 235, 0.85) !important;
+  color: #6b7280 !important;
+  cursor: not-allowed !important;
+  opacity: 0.72 !important;
+}
+
+tr.cvls-delete-request-pending td {
+  color: #6b7280 !important;
+}
+
+tr.cvls-delete-request-pending * {
+  pointer-events: none !important;
+}
+
+.cvls-row-pressing {
+  background: rgba(0, 122, 255, 0.12) !important;
+}
+
+.cvls-row-delete-pending {
+  opacity: 0.45;
+  background: #f2f2f7 !important;
+  pointer-events: auto;
+}
+
+.cvls-action-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 18px;
+}
+
+.cvls-action-card {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 22px;
+  padding: 12px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+}
+
+.cvls-action-title {
+  text-align: center;
+  font-weight: 600;
+  padding: 10px 8px 14px;
+  color: #6e6e73;
+}
+
+.cvls-action-card button {
+  width: 100%;
+  border: none;
+  background: #fff;
+  padding: 15px;
+  font-size: 17px;
+  border-radius: 14px;
+  margin-top: 8px;
+}
+
+.cvls-action-card button.danger {
+  color: #ff3b30;
+}
+
+/* =========================================================
+   CVLS - PULSANTI MANUTENZIONE / PROGRAMMAZIONE DEFINITIVI
+========================================================= */
+
+/* Pulsante "Aggiungi riga" largo come gli altri */
+#addManutenzioneBtn {
+  width: 100% !important;
+  max-width: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+}
+
+/* Il popup programmazione diventa una griglia stabile */
+#popupProgrammaManutenzione {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 12px;
+}
+
+/* Quando è nascosto deve restare nascosto */
+#popupProgrammaManutenzione.hidden {
+  display: none !important;
+}
+
+/* Titolo, label e campi occupano tutta la larghezza */
+#popupProgrammaManutenzione .admin-title,
+#popupProgrammaManutenzione label,
+#popupProgrammaManutenzione input,
+#popupProgrammaManutenzione select {
+  grid-column: 1 / -1;
+}
+
+/* Conferma a sinistra */
+#popupProgrammaManutenzione #confermaProgrammaBtn {
+  grid-column: 1 / 2;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 8px 0 0 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  white-space: nowrap !important;
+}
+
+/* Annulla a destra */
+#popupProgrammaManutenzione #chiudiProgrammaBtn {
+  grid-column: 2 / 3;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 8px 0 0 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  white-space: nowrap !important;
+}
+
+/* Stato GPS Registro Presenze / Bollatura */
+.gps-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  min-height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.gps-dot.green {
+  background-color: #22c55e;
+}
+
+.gps-dot.orange {
+  background-color: #f59e0b;
+}
+
+.gps-dot.red {
+  background-color: #ef4444;
+}

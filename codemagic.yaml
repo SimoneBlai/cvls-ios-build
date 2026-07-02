@@ -13,9 +13,14 @@ workflows:
         script: |
           npm ci || npm install
 
-      - name: Build web app
+            - name: Check web app files
         script: |
-          npm run build
+          if [ ! -d "www" ]; then
+            echo "ERRORE: cartella www non trovata"
+            exit 1
+          fi
+          echo "Cartella www trovata"
+          ls -la www
 
       - name: Sync Capacitor iOS
         script: |
