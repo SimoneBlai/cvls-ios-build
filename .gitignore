@@ -1,0 +1,31 @@
+node_modules/
+android/.gradle/
+android/app/build/
+android/build/
+dist/
+build/
+.DS_Store
+# Dependencies
+node_modules/
+
+# Build output
+www/
+dist/
+build/
+
+# iOS/Android build folders
+ios/App/build/
+android/app/build/
+
+# IDE
+.idea/
+.vscode/
+
+# Backup CVLS
+cvls-*/
+*.zip
+*.backup-*.json
+
+# Logs
+*.log
+npm-debug.log*
