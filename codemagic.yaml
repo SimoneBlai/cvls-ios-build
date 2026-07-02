@@ -31,6 +31,19 @@ workflows:
           echo "File copiati in ios/App/App/public"
           ls -la ios/App/App/public
 
+      - name: Fix Swift Package paths
+        script: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          package_file = Path("ios/App/CapApp-SPM/Package.swift")
+          text = package_file.read_text()
+          text = text.replace("\\", "/")
+          package_file.write_text(text)
+
+          print(package_file.read_text())
+          PY
+
       - name: Show Xcode project info
         script: |
           xcodebuild -list -project ios/App/App.xcodeproj
