@@ -785,7 +785,21 @@
           <!-- Bollature rendered here -->
         </div>
 
-        <div id="regPresFoglioOreActions" style="margin-top: 18px; display: grid; grid-template-columns: 1fr; gap: 10px;">
+        <div id="regPresFoglioOrePeriodo" style="margin-top: 18px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #f9fafb; text-align: left;">
+          <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 10px;">Periodo foglio ore</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <label style="display: block; font-size: 12px; font-weight: 700; color: #4b5563;">
+              Mese
+              <select id="regPresFoglioOreMese" style="width: 100%; margin-top: 6px; padding: 10px; border: 1px solid #d1d5db; border-radius: 10px; background: #ffffff; color: #111827; font-size: 14px;"></select>
+            </label>
+            <label style="display: block; font-size: 12px; font-weight: 700; color: #4b5563;">
+              Anno
+              <select id="regPresFoglioOreAnno" style="width: 100%; margin-top: 6px; padding: 10px; border: 1px solid #d1d5db; border-radius: 10px; background: #ffffff; color: #111827; font-size: 14px;"></select>
+            </label>
+          </div>
+        </div>
+
+        <div id="regPresFoglioOreActions" style="margin-top: 12px; display: grid; grid-template-columns: 1fr; gap: 10px;">
           <button id="regPresVisualizzaFoglioOreBtn" class="primary-btn" type="button" style="width: 100%; padding: 12px; border-radius: 8px; cursor: pointer;">
             Visualizza foglio ore
           </button>
@@ -965,7 +979,7 @@
   <script src="cvls-attachments.js"></script>
   <script src="cvls-geobollatura.js?v=25"></script>
   <script src="pages/nota-spese/nota-spese.js?v=3"></script>
-  <script src="app.js?v=25"></script>
+  <script src="app.js?v=26"></script>
 </body>
 
 </html>

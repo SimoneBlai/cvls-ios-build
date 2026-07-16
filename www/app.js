@@ -7003,6 +7003,7 @@ function initRegistroPresenzeLuogoSearch() {
 }
 function openRegPresListModal() {
   renderRegistroPresenzeList();
+  cvlsInitRegistroPresenzePeriodSelector();
 
   const preview = document.getElementById("regPresFoglioOrePreview");
   if (preview) {
@@ -7242,14 +7243,114 @@ function cvlsGetRegistroPresenzeMonthReference(list) {
   return dates[0] || new Date();
 }
 
+function cvlsInitRegistroPresenzePeriodSelector() {
+  ensureDataShape();
+
+  const meseSelect = document.getElementById("regPresFoglioOreMese");
+  const annoSelect = document.getElementById("regPresFoglioOreAnno");
+
+  if (!meseSelect || !annoSelect) {
+    return;
+  }
+
+  const allBollature = Array.isArray(dati.bollature) ? dati.bollature.slice() : [];
+  const reference = cvlsGetRegistroPresenzeMonthReference(allBollature);
+  const previousMonth = Number(meseSelect.value);
+  const previousYear = Number(annoSelect.value);
+
+  meseSelect.innerHTML = "";
+  for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+    const option = document.createElement("option");
+    option.value = String(monthIndex + 1);
+
+    const monthLabel = new Date(2024, monthIndex, 1).toLocaleDateString("it-IT", {
+      month: "long"
+    });
+
+    option.textContent = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+    meseSelect.appendChild(option);
+  }
+
+  const currentYear = new Date().getFullYear();
+  const yearsMap = {};
+
+  for (let year = currentYear - 5; year <= currentYear + 1; year++) {
+    yearsMap[year] = true;
+  }
+
+  yearsMap[reference.getFullYear()] = true;
+
+  allBollature.forEach(function (item) {
+    const date = cvlsRegistroDateFromValue(item && item.orario);
+    if (date) {
+      yearsMap[date.getFullYear()] = true;
+    }
+  });
+
+  const years = Object.keys(yearsMap)
+    .map(Number)
+    .filter(Number.isFinite)
+    .sort(function (a, b) {
+      return b - a;
+    });
+
+  annoSelect.innerHTML = "";
+  years.forEach(function (year) {
+    const option = document.createElement("option");
+    option.value = String(year);
+    option.textContent = String(year);
+    annoSelect.appendChild(option);
+  });
+
+  const selectedMonth = previousMonth >= 1 && previousMonth <= 12
+    ? previousMonth
+    : reference.getMonth() + 1;
+  const selectedYear = years.indexOf(previousYear) !== -1
+    ? previousYear
+    : reference.getFullYear();
+
+  meseSelect.value = String(selectedMonth);
+  annoSelect.value = String(selectedYear);
+
+  const resetPreview = function () {
+    const preview = document.getElementById("regPresFoglioOrePreview");
+
+    if (preview) {
+      preview.innerHTML = "";
+      preview.classList.add("hidden");
+    }
+  };
+
+  meseSelect.onchange = resetPreview;
+  annoSelect.onchange = resetPreview;
+}
+
+function cvlsGetRegistroPresenzeSelectedPeriod(allBollature) {
+  const reference = cvlsGetRegistroPresenzeMonthReference(allBollature);
+  const meseSelect = document.getElementById("regPresFoglioOreMese");
+  const annoSelect = document.getElementById("regPresFoglioOreAnno");
+
+  const selectedMonth = Number(meseSelect && meseSelect.value);
+  const selectedYear = Number(annoSelect && annoSelect.value);
+
+  return {
+    year: Number.isFinite(selectedYear) && selectedYear >= 2000
+      ? selectedYear
+      : reference.getFullYear(),
+    monthIndex: Number.isFinite(selectedMonth) && selectedMonth >= 1 && selectedMonth <= 12
+      ? selectedMonth - 1
+      : reference.getMonth()
+  };
+}
+
 function cvlsBuildFoglioOreMensileData() {
   ensureDataShape();
 
   const allBollature = Array.isArray(dati.bollature) ? dati.bollature.slice() : [];
-  const monthReference = cvlsGetRegistroPresenzeMonthReference(allBollature);
-  const year = monthReference.getFullYear();
-  const monthIndex = monthReference.getMonth();
-  const monthKey = cvlsRegistroMonthKey(monthReference);
+  const selectedPeriod = cvlsGetRegistroPresenzeSelectedPeriod(allBollature);
+  const year = selectedPeriod.year;
+  const monthIndex = selectedPeriod.monthIndex;
+  const monthKey = cvlsRegistroMonthKey(new Date(year, monthIndex, 1));
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
 
   const monthBollature = allBollature
