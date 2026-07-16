@@ -1,11 +1,22 @@
 /* =========================================================
    CVLS - Nota Spese
    File dedicato: pages/nota-spese/nota-spese.js
-   Prompt 13B: pagina base collegata a Supabase
    ========================================================= */
 
 (function () {
   "use strict";
+
+  const RECEIPTS_BUCKET = "note-spese";
+  const MAX_RECEIPT_SIZE = 15 * 1024 * 1024;
+  const ALLOWED_RECEIPT_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif", "pdf"];
+  const ALLOWED_RECEIPT_MIME_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "image/heif",
+    "application/pdf"
+  ];
 
   const state = {
     initialized: false,
@@ -67,6 +78,13 @@
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
   }
 
+  function formatFileSize(bytes) {
+    const value = Number(bytes || 0);
+    if (value < 1024) return `${value} B`;
+    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
   function setStatus(message, type) {
     const el = document.getElementById("cvlsNotaSpeseStatus");
     if (!el) return;
@@ -82,14 +100,21 @@
     [
       "cvlsNotaSpeseCaricaBtn",
       "cvlsNotaSpeseAggiungiBtn",
-      "cvlsNotaSpesePulisciBtn"
+      "cvlsNotaSpesePulisciBtn",
+      "cvlsNotaSpeseScontrino"
     ].forEach(function (id) {
-      const btn = document.getElementById(id);
-      if (btn) btn.disabled = !!disabled;
+      const element = document.getElementById(id);
+      if (element) element.disabled = !!disabled;
     });
+
+    document
+      .querySelectorAll("[data-cvls-nota-spese-delete], [data-cvls-nota-spese-open]")
+      .forEach(function (button) {
+        button.disabled = !!disabled;
+      });
   }
 
-  function readYearMonth() {
+  function getSelectedYearMonth() {
     const anno = Number(document.getElementById("cvlsNotaSpeseAnno")?.value || 0);
     const mese = Number(document.getElementById("cvlsNotaSpeseMese")?.value || 0);
 
@@ -101,8 +126,49 @@
       throw new Error("Mese non valido.");
     }
 
-    state.anno = anno;
-    state.mese = mese;
+    return { anno: anno, mese: mese };
+  }
+
+  function readYearMonth() {
+    const selected = getSelectedYearMonth();
+    state.anno = selected.anno;
+    state.mese = selected.mese;
+    return selected;
+  }
+
+  function defaultDateForSelection() {
+    try {
+      const selected = getSelectedYearMonth();
+      const current = currentYearMonth();
+
+      if (selected.anno === current.anno && selected.mese === current.mese) {
+        return todayIso();
+      }
+
+      return `${selected.anno}-${pad2(selected.mese)}-01`;
+    } catch (error) {
+      return todayIso();
+    }
+  }
+
+  function resetLoadedMonth(message) {
+    state.anno = null;
+    state.mese = null;
+    state.notaSpese = null;
+    state.righe = [];
+
+    const totaleBox = document.getElementById("cvlsNotaSpeseTotale");
+    if (totaleBox) totaleBox.textContent = formatEuro(0);
+
+    const lista = document.getElementById("cvlsNotaSpeseLista");
+    if (lista) {
+      lista.innerHTML = `<div class="cvls-nota-spese-empty">${escapeHtml(message || "Seleziona e carica un mese.")}</div>`;
+    }
+
+    const dataInput = document.getElementById("cvlsNotaSpeseData");
+    if (dataInput) dataInput.value = defaultDateForSelection();
+
+    setStatus("", "");
   }
 
   async function renderBase() {
@@ -110,7 +176,7 @@
     if (!root) return;
 
     const response = await fetch(
-      "pages/nota-spese/nota-spese.html?v=1",
+      "pages/nota-spese/nota-spese.html?v=3",
       { cache: "no-store" }
     );
 
@@ -123,10 +189,10 @@
     root.innerHTML = await response.text();
 
     const ym = currentYearMonth();
-
     const annoInput = document.getElementById("cvlsNotaSpeseAnno");
     const meseSelect = document.getElementById("cvlsNotaSpeseMese");
     const dataInput = document.getElementById("cvlsNotaSpeseData");
+    const fileInput = document.getElementById("cvlsNotaSpeseScontrino");
 
     if (annoInput) annoInput.value = String(ym.anno);
     if (meseSelect) meseSelect.value = String(ym.mese);
@@ -143,7 +209,18 @@
     document
       .getElementById("cvlsNotaSpesePulisciBtn")
       ?.addEventListener("click", clearForm);
+
+    annoInput?.addEventListener("change", function () {
+      resetLoadedMonth("Mese modificato. Premi Carica mese oppure inserisci una spesa per caricarlo automaticamente.");
+    });
+
+    meseSelect?.addEventListener("change", function () {
+      resetLoadedMonth("Mese modificato. Premi Carica mese oppure inserisci una spesa per caricarlo automaticamente.");
+    });
+
+    fileInput?.addEventListener("change", renderSelectedReceipt);
   }
+
   async function loadAuth() {
     const client = getClient();
 
@@ -162,7 +239,11 @@
     let nomeTecnico = String(localStorage.getItem("cvls_user_name") || "").trim();
     const email = String(state.user.email || "").trim();
 
-    if ((!nomeTecnico || nomeTecnico.includes("@")) && window.CvlsSupabase && typeof window.CvlsSupabase.getProfile === "function") {
+    if (
+      (!nomeTecnico || nomeTecnico.includes("@")) &&
+      window.CvlsSupabase &&
+      typeof window.CvlsSupabase.getProfile === "function"
+    ) {
       const profile = await window.CvlsSupabase.getProfile(state.user.id);
       if (profile && profile.nome_tecnico) {
         nomeTecnico = String(profile.nome_tecnico).trim();
@@ -239,6 +320,10 @@
     }
 
     const rows = state.righe.map(function (row) {
+      const receiptCell = row.scontrino_path
+        ? `<button class="cvls-nota-spese-button cvls-nota-spese-button-secondary cvls-nota-spese-button-small" type="button" data-cvls-nota-spese-open="${escapeHtml(row.id)}">Apri</button>`
+        : '<span class="cvls-nota-spese-receipt-missing">Non allegato</span>';
+
       return `
         <tr>
           <td>${formatDateIt(row.data_spesa)}</td>
@@ -246,9 +331,11 @@
           <td>${escapeHtml(row.descrizione || "")}</td>
           <td>${formatEuro(row.importo)}</td>
           <td>${escapeHtml(row.metodo_pagamento || "")}</td>
-          <td>${row.scontrino_path ? "Presente" : "Non allegato"}</td>
+          <td>${receiptCell}</td>
           <td>
-            <button class="cvls-nota-spese-button cvls-nota-spese-button-danger cvls-nota-spese-button-small" type="button" data-cvls-nota-spese-delete="${row.id}">Elimina</button>
+            <div class="cvls-nota-spese-row-actions">
+              <button class="cvls-nota-spese-button cvls-nota-spese-button-danger cvls-nota-spese-button-small" type="button" data-cvls-nota-spese-delete="${escapeHtml(row.id)}">Elimina</button>
+            </div>
           </td>
         </tr>
       `;
@@ -276,6 +363,12 @@
     lista.querySelectorAll("[data-cvls-nota-spese-delete]").forEach(function (button) {
       button.addEventListener("click", function () {
         deleteRiga(button.getAttribute("data-cvls-nota-spese-delete"));
+      });
+    });
+
+    lista.querySelectorAll("[data-cvls-nota-spese-open]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        openReceipt(button.getAttribute("data-cvls-nota-spese-open"));
       });
     });
   }
@@ -311,29 +404,149 @@
     const descrizione = document.getElementById("cvlsNotaSpeseDescrizione");
     const importo = document.getElementById("cvlsNotaSpeseImporto");
     const metodo = document.getElementById("cvlsNotaSpeseMetodo");
+    const scontrino = document.getElementById("cvlsNotaSpeseScontrino");
     const note = document.getElementById("cvlsNotaSpeseNote");
 
-    if (data) data.value = todayIso();
+    if (data) data.value = defaultDateForSelection();
     if (categoria) categoria.value = "";
     if (descrizione) descrizione.value = "";
     if (importo) importo.value = "";
     if (metodo) metodo.value = "";
+    if (scontrino) scontrino.value = "";
     if (note) note.value = "";
+
+    renderSelectedReceipt();
+  }
+
+  function renderSelectedReceipt() {
+    const input = document.getElementById("cvlsNotaSpeseScontrino");
+    const info = document.getElementById("cvlsNotaSpeseScontrinoNome");
+    if (!info) return;
+
+    const file = input?.files?.[0] || null;
+    info.textContent = file
+      ? `${file.name} · ${formatFileSize(file.size)}`
+      : "Nessun file selezionato";
+  }
+
+  function getReceiptFile() {
+    return document.getElementById("cvlsNotaSpeseScontrino")?.files?.[0] || null;
+  }
+
+  function getFileExtension(file) {
+    const name = String(file?.name || "").trim();
+    const dotIndex = name.lastIndexOf(".");
+    if (dotIndex < 0) return "";
+    return name.slice(dotIndex + 1).toLowerCase();
+  }
+
+  function validateReceipt(file) {
+    if (!file) return;
+
+    if (Number(file.size || 0) <= 0) {
+      throw new Error("Il file selezionato è vuoto.");
+    }
+
+    if (Number(file.size || 0) > MAX_RECEIPT_SIZE) {
+      throw new Error("Lo scontrino supera la dimensione massima di 15 MB.");
+    }
+
+    const extension = getFileExtension(file);
+    const mimeType = String(file.type || "").toLowerCase();
+    const allowedByExtension = ALLOWED_RECEIPT_EXTENSIONS.includes(extension);
+    const allowedByMime = ALLOWED_RECEIPT_MIME_TYPES.includes(mimeType);
+
+    if (!allowedByExtension && !allowedByMime) {
+      throw new Error("Formato scontrino non supportato. Usa JPG, PNG, WEBP, HEIC o PDF.");
+    }
+  }
+
+  function createUniqueId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
+    }
+
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function getStoragePath(file) {
+    const extension = getFileExtension(file) || "bin";
+    return `${state.user.id}/${state.anno}/${pad2(state.mese)}/${Date.now()}-${createUniqueId()}.${extension}`;
+  }
+
+  async function uploadReceipt(file) {
+    if (!file) return null;
+
+    validateReceipt(file);
+    const path = getStoragePath(file);
+
+    const result = await state.client.storage
+      .from(RECEIPTS_BUCKET)
+      .upload(path, file, {
+        cacheControl: "3600",
+        contentType: file.type || undefined,
+        upsert: false
+      });
+
+    if (result.error) {
+      if (/bucket not found/i.test(String(result.error.message || ""))) {
+        throw new Error("Archivio scontrini non configurato su Supabase.");
+      }
+      throw result.error;
+    }
+
+    return path;
+  }
+
+  async function removeReceipt(path) {
+    if (!path) return null;
+
+    const result = await state.client.storage
+      .from(RECEIPTS_BUCKET)
+      .remove([path]);
+
+    return result.error || null;
+  }
+
+  async function ensureSelectedMonthContext() {
+    if (!state.client || !state.user) {
+      await loadAuth();
+    }
+
+    const selected = readYearMonth();
+    const loadedMatches = Boolean(
+      state.notaSpese &&
+      Number(state.notaSpese.anno) === selected.anno &&
+      Number(state.notaSpese.mese) === selected.mese &&
+      String(state.notaSpese.user_id || "") === String(state.user.id || "")
+    );
+
+    if (!loadedMatches) {
+      await ensureTestata();
+      await loadRighe();
+      await updateTotale();
+      renderLista();
+    }
+  }
+
+  function validateExpenseDate(data) {
+    const expectedPrefix = `${state.anno}-${pad2(state.mese)}-`;
+    if (!String(data || "").startsWith(expectedPrefix)) {
+      throw new Error("La data della spesa deve appartenere al mese selezionato.");
+    }
   }
 
   async function addRiga() {
     if (state.loading) return;
+
+    let uploadedReceiptPath = null;
 
     try {
       state.loading = true;
       setButtonsDisabled(true);
       setStatus("Salvataggio spesa...", "");
 
-      if (!state.notaSpese) {
-        await loadAuth();
-        readYearMonth();
-        await ensureTestata();
-      }
+      await ensureSelectedMonthContext();
 
       const data = document.getElementById("cvlsNotaSpeseData")?.value || "";
       const categoria = document.getElementById("cvlsNotaSpeseCategoria")?.value || "";
@@ -341,11 +554,20 @@
       const importo = Number(document.getElementById("cvlsNotaSpeseImporto")?.value || 0);
       const metodo = document.getElementById("cvlsNotaSpeseMetodo")?.value || "";
       const note = String(document.getElementById("cvlsNotaSpeseNote")?.value || "").trim();
+      const receiptFile = getReceiptFile();
 
       if (!data) throw new Error("Inserisci la data della spesa.");
       if (!categoria) throw new Error("Seleziona una categoria.");
       if (!descrizione) throw new Error("Inserisci una descrizione.");
       if (!importo || importo <= 0) throw new Error("Inserisci un importo valido.");
+
+      validateExpenseDate(data);
+      validateReceipt(receiptFile);
+
+      if (receiptFile) {
+        setStatus("Caricamento scontrino...", "");
+        uploadedReceiptPath = await uploadReceipt(receiptFile);
+      }
 
       const result = await state.client
         .from("note_spese_righe")
@@ -357,7 +579,8 @@
           descrizione: descrizione,
           importo: importo,
           metodo_pagamento: metodo || null,
-          note: note || null
+          note: note || null,
+          scontrino_path: uploadedReceiptPath
         })
         .select("*")
         .single();
@@ -371,8 +594,67 @@
 
       setStatus("Spesa aggiunta correttamente.", "ok");
     } catch (error) {
+      if (uploadedReceiptPath && state.client) {
+        const cleanupError = await removeReceipt(uploadedReceiptPath);
+        if (cleanupError) {
+          console.warn("CVLS Nota Spese - pulizia scontrino non completata:", cleanupError);
+        }
+      }
+
       console.error("CVLS Nota Spese - errore salvataggio:", error);
-      setStatus(error.message || "Errore durante il salvataggio della spesa.", "error");
+
+      const errorMessage = error.message || "Errore durante il salvataggio della spesa.";
+      setStatus("", "");
+
+      if (typeof window.cvlsAlert === "function") {
+        window.cvlsAlert(errorMessage, "Nota Spese");
+      } else {
+        window.alert(errorMessage);
+      }
+    } finally {
+      state.loading = false;
+      setButtonsDisabled(false);
+    }
+  }
+
+  async function openReceipt(id) {
+    if (!id || state.loading) return;
+
+    const row = state.righe.find(function (item) {
+      return String(item.id) === String(id);
+    });
+
+    if (!row || !row.scontrino_path) {
+      setStatus("Scontrino non disponibile.", "error");
+      return;
+    }
+
+    try {
+      state.loading = true;
+      setButtonsDisabled(true);
+      setStatus("Apertura scontrino...", "");
+
+      const result = await state.client.storage
+        .from(RECEIPTS_BUCKET)
+        .createSignedUrl(row.scontrino_path, 120);
+
+      if (result.error) throw result.error;
+
+      const signedUrl = result.data?.signedUrl || result.data?.signedURL || "";
+      if (!signedUrl) throw new Error("Link dello scontrino non disponibile.");
+
+      const browserPlugin = window.Capacitor?.Plugins?.Browser;
+      if (browserPlugin && typeof browserPlugin.open === "function") {
+        await browserPlugin.open({ url: signedUrl });
+      } else {
+        const opened = window.open(signedUrl, "_blank", "noopener,noreferrer");
+        if (!opened) window.location.href = signedUrl;
+      }
+
+      setStatus("Scontrino aperto.", "ok");
+    } catch (error) {
+      console.error("CVLS Nota Spese - errore apertura scontrino:", error);
+      setStatus(error.message || "Errore durante l'apertura dello scontrino.", "error");
     } finally {
       state.loading = false;
       setButtonsDisabled(false);
@@ -382,7 +664,7 @@
   async function deleteRiga(id) {
     if (!id || state.loading) return;
 
-    const message = "Vuoi eliminare questa spesa?";
+    const message = "Vuoi eliminare questa spesa? Verrà eliminato anche l'eventuale scontrino allegato.";
 
     if (typeof window.cvlsConfirm === "function") {
       window.cvlsConfirm(message, function () {
@@ -397,6 +679,10 @@
   }
 
   async function deleteRigaConfirmed(id) {
+    const row = state.righe.find(function (item) {
+      return String(item.id) === String(id);
+    });
+
     try {
       state.loading = true;
       setButtonsDisabled(true);
@@ -410,11 +696,25 @@
 
       if (result.error) throw result.error;
 
+      let cleanupWarning = false;
+      if (row?.scontrino_path) {
+        const cleanupError = await removeReceipt(row.scontrino_path);
+        if (cleanupError) {
+          cleanupWarning = true;
+          console.warn("CVLS Nota Spese - scontrino non eliminato dallo Storage:", cleanupError);
+        }
+      }
+
       await loadRighe();
       await updateTotale();
       renderLista();
 
-      setStatus("Spesa eliminata correttamente.", "ok");
+      setStatus(
+        cleanupWarning
+          ? "Spesa eliminata. Pulizia dello scontrino non completata."
+          : "Spesa eliminata correttamente.",
+        cleanupWarning ? "error" : "ok"
+      );
     } catch (error) {
       console.error("CVLS Nota Spese - errore eliminazione:", error);
       setStatus(error.message || "Errore durante l'eliminazione della spesa.", "error");
