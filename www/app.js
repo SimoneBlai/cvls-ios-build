@@ -7889,6 +7889,10 @@ function cvlsShowPage(pageId, title) {
     initRegistroPresenzeLuogoSearch();
     initRegistroPresenzePranzo();
   }
+
+  if (pageId === "pageNotaSpese" && window.CvlsNotaSpese && typeof window.CvlsNotaSpese.init === "function") {
+    window.CvlsNotaSpese.init();
+  }
 }
 
 function tornaArchivio() {

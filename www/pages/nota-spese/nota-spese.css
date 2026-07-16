@@ -1,0 +1,203 @@
+/* =========================================================
+   CVLS - Nota Spese
+   File dedicato: pages/nota-spese/nota-spese.css
+   ========================================================= */
+
+.cvls-nota-spese-root {
+  padding: 0;
+}
+
+.cvls-nota-spese-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 16px;
+  margin: 14px 0;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.cvls-nota-spese-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 6px 0;
+}
+
+.cvls-nota-spese-card-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 14px 0;
+  line-height: 1.4;
+}
+
+.cvls-nota-spese-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.cvls-nota-spese-summary-box {
+  background: #f9fafb;
+  border: 1px solid #eef2f7;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.cvls-nota-spese-summary-label {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.cvls-nota-spese-summary-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  word-break: break-word;
+}
+
+.cvls-nota-spese-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.cvls-nota-spese-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cvls-nota-spese-field-full {
+  grid-column: 1 / -1;
+}
+
+.cvls-nota-spese-field label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.cvls-nota-spese-field input,
+.cvls-nota-spese-field select,
+.cvls-nota-spese-field textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 11px 12px;
+  font-size: 15px;
+  background: #ffffff;
+  color: #111827;
+  box-sizing: border-box;
+}
+
+.cvls-nota-spese-field textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.cvls-nota-spese-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.cvls-nota-spese-button {
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cvls-nota-spese-button-primary {
+  background: #111827;
+  color: #ffffff;
+}
+
+.cvls-nota-spese-button-secondary {
+  background: #eef2ff;
+  color: #1f2937;
+}
+
+.cvls-nota-spese-button-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.cvls-nota-spese-button-small {
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.cvls-nota-spese-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cvls-nota-spese-table-wrap {
+  overflow-x: auto;
+}
+
+.cvls-nota-spese-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.cvls-nota-spese-table th,
+.cvls-nota-spese-table td {
+  padding: 11px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  font-size: 14px;
+  vertical-align: top;
+}
+
+.cvls-nota-spese-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #6b7280;
+  background: #f9fafb;
+}
+
+.cvls-nota-spese-empty {
+  padding: 18px;
+  border-radius: 14px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.cvls-nota-spese-status {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #4b5563;
+  min-height: 20px;
+}
+
+.cvls-nota-spese-error {
+  color: #991b1b;
+}
+
+.cvls-nota-spese-ok {
+  color: #166534;
+}
+
+@media (max-width: 700px) {
+  .cvls-nota-spese-grid,
+  .cvls-nota-spese-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .cvls-nota-spese-actions {
+    flex-direction: column;
+  }
+
+  .cvls-nota-spese-button {
+    width: 100%;
+  }
+}

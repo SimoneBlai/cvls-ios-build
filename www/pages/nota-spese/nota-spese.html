@@ -1,0 +1,112 @@
+<div class="cvls-nota-spese-card">
+        <h3 class="cvls-nota-spese-card-title">Riepilogo mensile</h3>
+        <p class="cvls-nota-spese-card-subtitle">
+          Gestione mensile delle spese del tecnico autenticato. In questo passaggio salviamo le righe spesa; gli scontrini arrivano nel prossimo step.
+        </p>
+
+        <div class="cvls-nota-spese-summary">
+          <div class="cvls-nota-spese-summary-box">
+            <div class="cvls-nota-spese-summary-label">Tecnico</div>
+            <div id="cvlsNotaSpeseTecnico" class="cvls-nota-spese-summary-value">-</div>
+          </div>
+          <div class="cvls-nota-spese-summary-box">
+            <div class="cvls-nota-spese-summary-label">Totale mese</div>
+            <div id="cvlsNotaSpeseTotale" class="cvls-nota-spese-summary-value">€ 0,00</div>
+          </div>
+        </div>
+
+        <div class="cvls-nota-spese-grid">
+          <div class="cvls-nota-spese-field">
+            <label for="cvlsNotaSpeseAnno">Anno</label>
+            <input id="cvlsNotaSpeseAnno" type="number" min="2020" max="2100" value="">
+          </div>
+
+          <div class="cvls-nota-spese-field">
+            <label for="cvlsNotaSpeseMese">Mese</label>
+            <select id="cvlsNotaSpeseMese">
+              <option value="1">Gennaio</option>
+              <option value="2">Febbraio</option>
+              <option value="3">Marzo</option>
+              <option value="4">Aprile</option>
+              <option value="5">Maggio</option>
+              <option value="6">Giugno</option>
+              <option value="7">Luglio</option>
+              <option value="8">Agosto</option>
+              <option value="9">Settembre</option>
+              <option value="10">Ottobre</option>
+              <option value="11">Novembre</option>
+              <option value="12">Dicembre</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="cvls-nota-spese-actions">
+          <button id="cvlsNotaSpeseCaricaBtn" class="cvls-nota-spese-button cvls-nota-spese-button-primary" type="button">Carica mese</button>
+        </div>
+
+        <div id="cvlsNotaSpeseStatus" class="cvls-nota-spese-status"></div>
+      </div>
+
+      <div class="cvls-nota-spese-card">
+        <h3 class="cvls-nota-spese-card-title">Aggiungi spesa</h3>
+        <p class="cvls-nota-spese-card-subtitle">Inserisci una riga spesa. Lo scontrino verrà aggiunto nel Prompt 13C.</p>
+
+        <div class="cvls-nota-spese-grid">
+          <div class="cvls-nota-spese-field">
+            <label for="cvlsNotaSpeseData">Data</label>
+            <input id="cvlsNotaSpeseData" type="date" value="">
+          </div>
+
+          <div class="cvls-nota-spese-field">
+            <label for="cvlsNotaSpeseCategoria">Categoria</label>
+            <select id="cvlsNotaSpeseCategoria">
+              <option value="">Seleziona</option>
+              <option value="Carburante">Carburante</option>
+              <option value="Autostrada">Autostrada</option>
+              <option value="Parcheggio">Parcheggio</option>
+              <option value="Pranzo">Pranzo</option>
+              <option value="Cena">Cena</option>
+              <option value="Hotel">Hotel</option>
+              <option value="Materiale">Materiale</option>
+              <option value="Altro">Altro</option>
+            </select>
+          </div>
+
+          <div class="cvls-nota-spese-field cvls-nota-spese-field-full">
+            <label for="cvlsNotaSpeseDescrizione">Descrizione</label>
+            <input id="cvlsNotaSpeseDescrizione" type="text" placeholder="Esempio: pranzo tecnico presso presidio">
+          </div>
+
+          <div class="cvls-nota-spese-field">
+            <label for="cvlsNotaSpeseImporto">Importo</label>
+            <input id="cvlsNotaSpeseImporto" type="number" min="0" step="0.01" placeholder="0,00">
+          </div>
+
+          <div class="cvls-nota-spese-field">
+            <label for="cvlsNotaSpeseMetodo">Metodo pagamento</label>
+            <select id="cvlsNotaSpeseMetodo">
+              <option value="">Non indicato</option>
+              <option value="Contanti">Contanti</option>
+              <option value="Carta personale">Carta personale</option>
+              <option value="Carta aziendale">Carta aziendale</option>
+              <option value="Telepass">Telepass</option>
+              <option value="Altro">Altro</option>
+            </select>
+          </div>
+
+          <div class="cvls-nota-spese-field cvls-nota-spese-field-full">
+            <label for="cvlsNotaSpeseNote">Note</label>
+            <textarea id="cvlsNotaSpeseNote" placeholder="Note facoltative"></textarea>
+          </div>
+        </div>
+
+        <div class="cvls-nota-spese-actions">
+          <button id="cvlsNotaSpeseAggiungiBtn" class="cvls-nota-spese-button cvls-nota-spese-button-primary" type="button">Aggiungi spesa</button>
+          <button id="cvlsNotaSpesePulisciBtn" class="cvls-nota-spese-button cvls-nota-spese-button-secondary" type="button">Pulisci campi</button>
+        </div>
+      </div>
+
+      <div class="cvls-nota-spese-card">
+        <h3 class="cvls-nota-spese-card-title">Spese del mese</h3>
+        <div id="cvlsNotaSpeseLista"></div>
+      </div>
