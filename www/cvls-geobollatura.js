@@ -243,15 +243,23 @@ window.CvlsGeobollatura = (function () {
         }
     }
 
-    function getRegistroPresenzeSelectedNames(fallbackCitta, fallbackCantiere) {
+    function getRegistroPresenzeSelectedNames(fallbackCitta, fallbackCantiere, fallbackLuoghi) {
         if (typeof window.getRegistroPresenzeLuogoNames === "function") {
             const names = window.getRegistroPresenzeLuogoNames() || {};
             return {
                 cittaNome: names.cittaNome || fallbackCitta || null,
-                cantiereNome: names.cantiereNome || fallbackCantiere || null
+                cantiereNome: names.cantiereNome || fallbackCantiere || null,
+                luoghi: Array.isArray(names.luoghi)
+                    ? names.luoghi
+                    : (Array.isArray(fallbackLuoghi) ? fallbackLuoghi : [])
             };
         }
 
+        const luoghi = typeof window.getRegistroPresenzeLuoghi === "function"
+            ? window.getRegistroPresenzeLuoghi()
+            : (Array.isArray(window.selectedRegistroPresenzeLuoghi)
+                ? window.selectedRegistroPresenzeLuoghi
+                : []);
         const presidiArr = Array.isArray(window.selectedRegistroPresenzePresidi)
             ? window.selectedRegistroPresenzePresidi
             : [];
@@ -265,7 +273,10 @@ window.CvlsGeobollatura = (function () {
                 : (fallbackCitta || null),
             cantiereNome: ubicazioniArr.length > 0
                 ? ubicazioniArr.map(function (u) { return u.NomeUbicazione; }).filter(Boolean).join(", ")
-                : (fallbackCantiere || null)
+                : (fallbackCantiere || null),
+            luoghi: Array.isArray(luoghi)
+                ? luoghi
+                : (Array.isArray(fallbackLuoghi) ? fallbackLuoghi : [])
         };
     }
 
@@ -465,6 +476,8 @@ window.CvlsGeobollatura = (function () {
                 totaleLavoratoTesto: null,
                 totaleCalcolatoMinuti: null,
                 totaleCalcolatoTesto: null,
+                orePermessoMinuti: null,
+                orePermessoTesto: null,
                 regolaCalcolo: null
             };
         }
@@ -481,6 +494,9 @@ window.CvlsGeobollatura = (function () {
         const totaleCalcolatoMinuti = applicaTolleranza
             ? targetMinuti
             : totaleLavoratoMinuti;
+        const orePermessoMinuti = totaleCalcolatoMinuti < targetMinuti
+            ? targetMinuti - totaleCalcolatoMinuti
+            : 0;
 
         return {
             pausaPranzoMinuti: pausaMinuti,
@@ -489,6 +505,10 @@ window.CvlsGeobollatura = (function () {
             totaleLavoratoTesto: formatRegistroPresenzeMinuti(totaleLavoratoMinuti),
             totaleCalcolatoMinuti: totaleCalcolatoMinuti,
             totaleCalcolatoTesto: formatRegistroPresenzeMinuti(totaleCalcolatoMinuti),
+            orePermessoMinuti: orePermessoMinuti,
+            orePermessoTesto: orePermessoMinuti > 0
+                ? formatRegistroPresenzeMinuti(orePermessoMinuti)
+                : null,
             regolaCalcolo: applicaTolleranza
                 ? "Tolleranza totale giornaliero 8h ±15m"
                 : null
@@ -510,6 +530,7 @@ window.CvlsGeobollatura = (function () {
             nome_sede: info.nomeSede,
             cantiere_nome: info.cantiereNome || null,
             citta_nome: info.cittaNome || null,
+            luoghi: Array.isArray(info.luoghi) ? info.luoghi : [],
             pausa_pranzo: info.pausaPranzo || null,
             pausa_pranzo_minuti: info.pausaPranzoMinuti ?? null,
             durata_lorda_minuti: info.durataLordaMinuti ?? null,
@@ -517,6 +538,8 @@ window.CvlsGeobollatura = (function () {
             totale_lavorato_testo: info.totaleLavoratoTesto || null,
             totale_calcolato_minuti: info.totaleCalcolatoMinuti ?? null,
             totale_calcolato_testo: info.totaleCalcolatoTesto || null,
+            ore_permesso_minuti: info.orePermessoMinuti ?? null,
+            ore_permesso_testo: info.orePermessoTesto || null,
             regola_calcolo: info.regolaCalcolo || null
         };
 
@@ -534,7 +557,7 @@ window.CvlsGeobollatura = (function () {
         // Queue pending change per il sync
         savePendingChange({
             type: "ADD_BOLLATURA",
-            deviceId: "attendance", // deviceId convenzionale per bollatura generica
+            deviceId: null,
             payload: {
                 id: bollaturaRecord.id,
                 tecnico: bollaturaRecord.tecnico,
@@ -547,6 +570,7 @@ window.CvlsGeobollatura = (function () {
                 nome_sede: bollaturaRecord.nome_sede,
                 cantiere_nome: info.cantiereNome || null,
                 citta_nome: info.cittaNome || null,
+                luoghi: bollaturaRecord.luoghi,
                 pausa_pranzo: bollaturaRecord.pausa_pranzo,
                 pausa_pranzo_minuti: bollaturaRecord.pausa_pranzo_minuti,
                 durata_lorda_minuti: bollaturaRecord.durata_lorda_minuti,
@@ -554,6 +578,8 @@ window.CvlsGeobollatura = (function () {
                 totale_lavorato_testo: bollaturaRecord.totale_lavorato_testo,
                 totale_calcolato_minuti: bollaturaRecord.totale_calcolato_minuti,
                 totale_calcolato_testo: bollaturaRecord.totale_calcolato_testo,
+                ore_permesso_minuti: bollaturaRecord.ore_permesso_minuti,
+                ore_permesso_testo: bollaturaRecord.ore_permesso_testo,
                 regola_calcolo: bollaturaRecord.regola_calcolo
             }
         });
@@ -681,14 +707,13 @@ window.CvlsGeobollatura = (function () {
             }
         }
 
-        // I campi Presidio/Ubicazione/Luogo devono restare sempre attivi,
-        // anche quando il tecnico e' gia' in servizio.
+        // Presidio e ubicazione restano modificabili fino alla bollatura successiva.
         var presInput = document.getElementById("regPresPresidioInput");
         var ubiInput = document.getElementById("regPresUbicazioneInput");
-        var luogoInput = document.getElementById("regPresLuogoInput");
+        var addLuogoBtn = document.getElementById("regPresLuogoAddBtn");
         if (presInput) { presInput.disabled = false; presInput.placeholder = "Cerca presidio..."; }
         if (ubiInput) { ubiInput.disabled = false; ubiInput.placeholder = "Cerca ubicazione..."; }
-        if (luogoInput) { luogoInput.disabled = false; luogoInput.placeholder = "Cerca luogo..."; }
+        if (addLuogoBtn) { addLuogoBtn.disabled = false; }
 
         if (typeof window.updateRegistroPresenzePranzoUI === "function") {
             window.updateRegistroPresenzePranzoUI();
@@ -718,7 +743,7 @@ window.CvlsGeobollatura = (function () {
         const activeCheckin = getActiveCheckin();
         if (activeCheckin) return;
 
-        const selectedNames = getRegistroPresenzeSelectedNames(null, null);
+        const selectedNames = getRegistroPresenzeSelectedNames(null, null, []);
         const selectedPresidioName = selectedNames.cittaNome;
         const selectedUbicazioneName = selectedNames.cantiereNome;
 
@@ -759,7 +784,8 @@ window.CvlsGeobollatura = (function () {
             statoGps: statoGps,
             nomeSede: nomeSede,
             cittaNome: selectedPresidioName,
-            cantiereNome: selectedUbicazioneName
+            cantiereNome: selectedUbicazioneName,
+            luoghi: selectedNames.luoghi
         };
 
         const confermato = await confirmRegistroPresenzeBollatura("ingresso");
@@ -809,7 +835,8 @@ window.CvlsGeobollatura = (function () {
 
         const selectedNames = getRegistroPresenzeSelectedNames(
             activeCheckin.cittaNome || null,
-            activeCheckin.cantiereNome || null
+            activeCheckin.cantiereNome || null,
+            activeCheckin.luoghi || []
         );
         const selectedPresidioName = selectedNames.cittaNome;
         const selectedUbicazioneName = selectedNames.cantiereNome;
@@ -854,6 +881,7 @@ window.CvlsGeobollatura = (function () {
             nomeSede: nomeSede,
             cittaNome: selectedPresidioName,
             cantiereNome: selectedUbicazioneName,
+            luoghi: selectedNames.luoghi,
             pausaPranzo: pausaPranzo,
             pausaPranzoMinuti: totali.pausaPranzoMinuti,
             durataLordaMinuti: totali.durataLordaMinuti,
@@ -861,6 +889,8 @@ window.CvlsGeobollatura = (function () {
             totaleLavoratoTesto: totali.totaleLavoratoTesto,
             totaleCalcolatoMinuti: totali.totaleCalcolatoMinuti,
             totaleCalcolatoTesto: totali.totaleCalcolatoTesto,
+            orePermessoMinuti: totali.orePermessoMinuti,
+            orePermessoTesto: totali.orePermessoTesto,
             regolaCalcolo: totali.regolaCalcolo
         };
 

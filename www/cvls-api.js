@@ -224,7 +224,7 @@ async function applyPendingChangeToSupabase(change) {
 
         const { error } = await supabase.from('bollature').insert({
             tecnico: payload.tecnico || localStorage.getItem("cvls_user_name") || "Tecnico",
-            codice_completo: payload.codice_completo || change.deviceId || null,
+            codice_completo: payload.codice_completo || null,
             tipo_bollatura: payload.tipo_bollatura,
             orario: payload.orario,
             latitudine: payload.latitudine,
@@ -233,6 +233,7 @@ async function applyPendingChangeToSupabase(change) {
             nome_sede: payload.nome_sede || null,
             cantiere_nome: payload.cantiere_nome || null,
             citta_nome: payload.citta_nome || null,
+            luoghi: Array.isArray(payload.luoghi) ? payload.luoghi : [],
             pausa_pranzo: payload.pausa_pranzo || null,
             pausa_pranzo_minuti: toNullableInteger(payload.pausa_pranzo_minuti),
             durata_lorda_minuti: toNullableInteger(payload.durata_lorda_minuti),
@@ -240,6 +241,8 @@ async function applyPendingChangeToSupabase(change) {
             totale_lavorato_testo: payload.totale_lavorato_testo || null,
             totale_calcolato_minuti: toNullableInteger(payload.totale_calcolato_minuti),
             totale_calcolato_testo: payload.totale_calcolato_testo || null,
+            ore_permesso_minuti: toNullableInteger(payload.ore_permesso_minuti),
+            ore_permesso_testo: payload.ore_permesso_testo || null,
             regola_calcolo: payload.regola_calcolo || null
         });
         if (error) throw error;
@@ -501,6 +504,7 @@ async function fetchCompleteDatabaseFromSupabase() {
         nome_sede: b.nome_sede || "",
         cantiere_nome: b.cantiere_nome || "",
         citta_nome: b.citta_nome || "",
+        luoghi: Array.isArray(b.luoghi) ? b.luoghi : [],
         pausa_pranzo: b.pausa_pranzo || "",
         pausa_pranzo_minuti: b.pausa_pranzo_minuti,
         durata_lorda_minuti: b.durata_lorda_minuti,
@@ -508,6 +512,8 @@ async function fetchCompleteDatabaseFromSupabase() {
         totale_lavorato_testo: b.totale_lavorato_testo || "",
         totale_calcolato_minuti: b.totale_calcolato_minuti,
         totale_calcolato_testo: b.totale_calcolato_testo || "",
+        ore_permesso_minuti: b.ore_permesso_minuti,
+        ore_permesso_testo: b.ore_permesso_testo || "",
         regola_calcolo: b.regola_calcolo || ""
     }));
 

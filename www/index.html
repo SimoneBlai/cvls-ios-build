@@ -565,43 +565,28 @@
         <div class="admin-box" style="position: relative;">
           <span class="admin-title">Luogo</span>
           <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 12px; text-align: left;">
-            
-            <!-- Presidio Search -->
+
             <div style="position: relative;">
               <label for="regPresPresidioInput" style="display: block; font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #374151;">Presidio</label>
               <input type="text" id="regPresPresidioInput" placeholder="Cerca presidio..." class="cvls-dialog-form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; background-color: white; font-size: 14px; box-sizing: border-box;" autocomplete="off">
-              
-              <!-- Suggestions container -->
               <div id="regPresPresidioSuggestions" style="position: absolute; top: 100%; left: 0; right: 0; background-color: white; border: 1px solid #d1d5db; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); display: none; margin-top: 4px;"></div>
-              
-              <!-- Selected Presidi Chips container -->
-              <div id="regPresPresidioSelected" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"></div>
             </div>
 
-            <!-- Ubicazione Search -->
             <div style="position: relative;">
               <label for="regPresUbicazioneInput" style="display: block; font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #374151;">Ubicazione</label>
               <input type="text" id="regPresUbicazioneInput" placeholder="Cerca ubicazione..." class="cvls-dialog-form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; background-color: white; font-size: 14px; box-sizing: border-box;" autocomplete="off">
-              
-              <!-- Suggestions container -->
-              <div id="regPresUbicazioneSuggestions" style="position: absolute; top: 100%; left: 0; right: 0; background-color: white; border: 1px solid #d1d5db; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); display: none; margin-top: 4px;"></div>
-              
-              <!-- Selected Ubicazioni Chips container -->
-              <div id="regPresUbicazioneSelected" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"></div>
+              <div id="regPresUbicazioneSuggestions" style="position: absolute; top: 100%; left: 0; right: 0; background-color: white; border: 1px solid #d1d5db; border-radius: 8px; max-height: 220px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); display: none; margin-top: 4px;"></div>
             </div>
 
-            <!-- Luogo Search -->
-            <div style="position: relative;">
-              <label for="regPresLuogoInput" style="display: block; font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #374151;">Luogo</label>
-              <input type="text" id="regPresLuogoInput" placeholder="Cerca luogo..." class="cvls-dialog-form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; background-color: white; font-size: 14px; box-sizing: border-box;" autocomplete="off">
-              
-              <!-- Suggestions container -->
-              <div id="regPresLuogoSuggestions" style="position: absolute; top: 100%; left: 0; right: 0; background-color: white; border: 1px solid #d1d5db; border-radius: 8px; max-height: 220px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); display: none; margin-top: 4px;"></div>
-              
-              <!-- Selected Luoghi Chips container -->
-              <div id="regPresLuogoSelected" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"></div>
+            <button id="regPresLuogoAddBtn" type="button" class="secondary-btn" style="width: 100%; margin: 0; padding: 11px 14px; border-radius: 8px; cursor: pointer;">
+              Aggiungi
+            </button>
+
+            <div style="font-size: 12px; color: #6b7280; line-height: 1.45;">
+              L'ubicazione è facoltativa. Puoi aggiungere più luoghi e rimuoverli con la × fino alla bollatura successiva.
             </div>
 
+            <div id="regPresLuogoSelected" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
           </div>
         </div>
 

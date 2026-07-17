@@ -6265,741 +6265,592 @@ window.updateRegistroPresenzePranzoUI = updateRegistroPresenzePranzoUI;
 function initRegistroPresenzeLuogoSearch() {
   const presidioInput = document.getElementById("regPresPresidioInput");
   const presidioSuggestions = document.getElementById("regPresPresidioSuggestions");
-  const presidioSelectedContainer = document.getElementById("regPresPresidioSelected");
-
   const ubicazioneInput = document.getElementById("regPresUbicazioneInput");
   const ubicazioneSuggestions = document.getElementById("regPresUbicazioneSuggestions");
-  const ubicazioneSelectedContainer = document.getElementById("regPresUbicazioneSelected");
+  const addButton = document.getElementById("regPresLuogoAddBtn");
+  const selectedContainer = document.getElementById("regPresLuogoSelected");
 
-  const luogoInput = document.getElementById("regPresLuogoInput");
-  const luogoSuggestions = document.getElementById("regPresLuogoSuggestions");
-  const luogoSelectedContainer = document.getElementById("regPresLuogoSelected");
-  const luogoSearchAvailable = !!(luogoInput && luogoSuggestions && luogoSelectedContainer);
-
-  if (!presidioInput || !presidioSuggestions || !presidioSelectedContainer ||
-      !ubicazioneInput || !ubicazioneSuggestions || !ubicazioneSelectedContainer) return;
-
-  const activeCheckin = window.CvlsGeobollatura && typeof window.CvlsGeobollatura.getActiveCheckin === "function"
-    ? window.CvlsGeobollatura.getActiveCheckin()
-    : null;
-
-  // I campi Presidio/Ubicazione devono restare sempre modificabili,
-  // anche quando il tecnico e' gia' in servizio.
-  presidioInput.disabled = false;
-  ubicazioneInput.disabled = false;
-  presidioInput.placeholder = "Cerca presidio...";
-  ubicazioneInput.placeholder = "Cerca ubicazione...";
-  presidioInput.value = "";
-  ubicazioneInput.value = "";
-  if (luogoSearchAvailable) {
-    luogoInput.disabled = false;
-    luogoInput.placeholder = "Cerca luogo...";
-    luogoInput.value = "";
-    luogoSuggestions.innerHTML = "";
-    luogoSuggestions.style.display = "none";
+  if (!presidioInput || !presidioSuggestions || !ubicazioneInput ||
+      !ubicazioneSuggestions || !addButton || !selectedContainer) {
+    return;
   }
-  presidioSuggestions.innerHTML = "";
-  presidioSuggestions.style.display = "none";
-  ubicazioneSuggestions.innerHTML = "";
-  ubicazioneSuggestions.style.display = "none";
+
+  let pendingPresidio = null;
+  let pendingUbicazione = null;
 
   function normalizzaRicercaRegistro(value) {
     return String(value || "").trim().toLowerCase();
   }
 
-  function presidioKey(p) {
-    return String(p && p.CodiceCitta !== undefined ? p.CodiceCitta : "") + "|" +
-           String(p && p.CodicePresidio !== undefined ? p.CodicePresidio : "");
-  }
-
-  function ubicazioneKey(u) {
-    return String(u && u.CodiceCitta !== undefined ? u.CodiceCitta : "") + "|" +
-           String(u && u.CodicePresidio !== undefined ? u.CodicePresidio : "") + "|" +
-           String(u && u.CodiceUbicazione !== undefined ? u.CodiceUbicazione : "");
-  }
-
-  function hasPresidioCodes(p) {
-    return p && p.CodiceCitta !== undefined && p.CodiceCitta !== null && p.CodiceCitta !== "" &&
-           p.CodicePresidio !== undefined && p.CodicePresidio !== null && p.CodicePresidio !== "";
-  }
-
-  function hasUbicazioneCodes(u) {
-    return u && u.CodiceCitta !== undefined && u.CodiceCitta !== null && u.CodiceCitta !== "" &&
-           u.CodicePresidio !== undefined && u.CodicePresidio !== null && u.CodicePresidio !== "" &&
-           u.CodiceUbicazione !== undefined && u.CodiceUbicazione !== null && u.CodiceUbicazione !== "";
-  }
-
-  function findPresidioByName(name) {
-    const normalized = normalizzaRicercaRegistro(name);
-    const list = Array.isArray(dati.presidi) ? dati.presidi : [];
-    return list.find(function (p) {
-      return normalizzaRicercaRegistro(p.NomePresidio) === normalized;
-    }) || null;
-  }
-
-  function findUbicazioneByName(name) {
-    const normalized = normalizzaRicercaRegistro(name);
-    const list = Array.isArray(dati.ubicazioni) ? dati.ubicazioni : [];
-    return list.find(function (u) {
-      return normalizzaRicercaRegistro(u.NomeUbicazione) === normalized;
-    }) || null;
+  function hasValue(value) {
+    return value !== undefined && value !== null && String(value) !== "";
   }
 
   function findPresidioForUbicazione(ubicazione) {
     if (!ubicazione) return null;
 
     const list = Array.isArray(dati.presidi) ? dati.presidi : [];
-    return list.find(function (p) {
-      return String(p.CodiceCitta) === String(ubicazione.CodiceCitta) &&
-             String(p.CodicePresidio) === String(ubicazione.CodicePresidio);
+    return list.find(function (presidio) {
+      return String(presidio.CodiceCitta) === String(ubicazione.CodiceCitta) &&
+             String(presidio.CodicePresidio) === String(ubicazione.CodicePresidio);
     }) || null;
   }
 
-  function ensureRegistroPresenzeLuoghiArray() {
+  function findPresidioByName(name) {
+    const wanted = normalizzaRicercaRegistro(name);
+    const list = Array.isArray(dati.presidi) ? dati.presidi : [];
+    return list.find(function (presidio) {
+      return normalizzaRicercaRegistro(presidio && presidio.NomePresidio) === wanted;
+    }) || null;
+  }
+
+  function findUbicazioneByNameAndPresidio(name, nomePresidio) {
+    const wantedUbicazione = normalizzaRicercaRegistro(name);
+    const wantedPresidio = normalizzaRicercaRegistro(nomePresidio);
+    const list = Array.isArray(dati.ubicazioni) ? dati.ubicazioni : [];
+
+    return list.find(function (ubicazione) {
+      if (normalizzaRicercaRegistro(ubicazione && ubicazione.NomeUbicazione) !== wantedUbicazione) {
+        return false;
+      }
+
+      if (!wantedPresidio) {
+        return true;
+      }
+
+      const presidio = findPresidioForUbicazione(ubicazione);
+      return normalizzaRicercaRegistro(presidio && presidio.NomePresidio) === wantedPresidio;
+    }) || null;
+  }
+
+  function normalizeLuogo(luogo) {
+    if (!luogo || typeof luogo !== "object") {
+      return null;
+    }
+
+    const nomePresidio = String(
+      luogo.NomePresidio || luogo.nome_presidio || luogo.presidio || ""
+    ).trim();
+    const nomeUbicazione = String(
+      luogo.NomeUbicazione || luogo.nome_ubicazione || luogo.ubicazione || ""
+    ).trim();
+
+    if (!nomePresidio) {
+      return null;
+    }
+
+    return {
+      tipo: nomeUbicazione ? "ubicazione" : "presidio",
+      CodiceCitta: hasValue(luogo.CodiceCitta) ? luogo.CodiceCitta : (luogo.codice_citta || null),
+      CodicePresidio: hasValue(luogo.CodicePresidio) ? luogo.CodicePresidio : (luogo.codice_presidio || null),
+      CodiceUbicazione: nomeUbicazione
+        ? (hasValue(luogo.CodiceUbicazione) ? luogo.CodiceUbicazione : (luogo.codice_ubicazione || null))
+        : null,
+      NomePresidio: nomePresidio,
+      NomeUbicazione: nomeUbicazione || ""
+    };
+  }
+
+  function luogoKey(luogo) {
+    const normalized = normalizeLuogo(luogo);
+    if (!normalized) return "";
+
+    if (hasValue(normalized.CodiceCitta) && hasValue(normalized.CodicePresidio)) {
+      if (normalized.NomeUbicazione && hasValue(normalized.CodiceUbicazione)) {
+        return "u|" + String(normalized.CodiceCitta) + "|" +
+          String(normalized.CodicePresidio) + "|" + String(normalized.CodiceUbicazione);
+      }
+
+      return "p|" + String(normalized.CodiceCitta) + "|" + String(normalized.CodicePresidio);
+    }
+
+    return "n|" + normalizzaRicercaRegistro(normalized.NomePresidio) + "|" +
+      normalizzaRicercaRegistro(normalized.NomeUbicazione);
+  }
+
+  function ensureLuoghiArray() {
     if (!Array.isArray(window.selectedRegistroPresenzeLuoghi)) {
       window.selectedRegistroPresenzeLuoghi = [];
     }
 
+    window.selectedRegistroPresenzeLuoghi = window.selectedRegistroPresenzeLuoghi
+      .map(normalizeLuogo)
+      .filter(Boolean);
+
     return window.selectedRegistroPresenzeLuoghi;
   }
 
-  function luogoKey(luogo) {
-    if (!luogo) return "";
-
-    if (luogo.tipo === "ubicazione") {
-      return "u|" +
-        String(luogo.CodiceCitta || "") + "|" +
-        String(luogo.CodicePresidio || "") + "|" +
-        String(luogo.CodiceUbicazione || "");
-    }
-
-    return "p|" +
-      String(luogo.CodiceCitta || "") + "|" +
-      String(luogo.CodicePresidio || "");
+  function uniqueByKey(list, keyBuilder) {
+    const seen = {};
+    return list.filter(function (item) {
+      const key = keyBuilder(item);
+      if (!key || seen[key]) return false;
+      seen[key] = true;
+      return true;
+    });
   }
 
-  function addUniqueName(target, value) {
-    const clean = String(value || "").trim();
-    if (!clean) return;
+  function syncLegacySelectionArrays() {
+    const luoghi = ensureLuoghiArray();
 
-    const exists = target.some(function (item) {
-      return normalizzaRicercaRegistro(item) === normalizzaRicercaRegistro(clean);
+    window.selectedRegistroPresenzePresidi = uniqueByKey(
+      luoghi.map(function (luogo) {
+        return {
+          CodiceCitta: luogo.CodiceCitta,
+          CodicePresidio: luogo.CodicePresidio,
+          NomePresidio: luogo.NomePresidio
+        };
+      }),
+      function (presidio) {
+        return hasValue(presidio.CodiceCitta) && hasValue(presidio.CodicePresidio)
+          ? String(presidio.CodiceCitta) + "|" + String(presidio.CodicePresidio)
+          : normalizzaRicercaRegistro(presidio.NomePresidio);
+      }
+    );
+
+    window.selectedRegistroPresenzeUbicazioni = uniqueByKey(
+      luoghi.filter(function (luogo) {
+        return !!luogo.NomeUbicazione;
+      }).map(function (luogo) {
+        return {
+          CodiceCitta: luogo.CodiceCitta,
+          CodicePresidio: luogo.CodicePresidio,
+          CodiceUbicazione: luogo.CodiceUbicazione,
+          NomePresidio: luogo.NomePresidio,
+          NomeUbicazione: luogo.NomeUbicazione
+        };
+      }),
+      luogoKey
+    );
+  }
+
+  function cloneLuoghi() {
+    return ensureLuoghiArray().map(function (luogo) {
+      return {
+        tipo: luogo.tipo,
+        CodiceCitta: luogo.CodiceCitta,
+        CodicePresidio: luogo.CodicePresidio,
+        CodiceUbicazione: luogo.CodiceUbicazione,
+        NomePresidio: luogo.NomePresidio,
+        NomeUbicazione: luogo.NomeUbicazione
+      };
     });
-
-    if (!exists) {
-      target.push(clean);
-    }
   }
 
   function getRegistroPresenzeLuogoNames() {
-    const presidiNames = [];
-    const ubicazioniNames = [];
+    const luoghi = cloneLuoghi();
+    const presidi = [];
+    const ubicazioni = [];
 
-    const presidiArr = Array.isArray(window.selectedRegistroPresenzePresidi)
-      ? window.selectedRegistroPresenzePresidi
-      : [];
+    luoghi.forEach(function (luogo) {
+      if (luogo.NomePresidio && presidi.indexOf(luogo.NomePresidio) === -1) {
+        presidi.push(luogo.NomePresidio);
+      }
 
-    const ubicazioniArr = Array.isArray(window.selectedRegistroPresenzeUbicazioni)
-      ? window.selectedRegistroPresenzeUbicazioni
-      : [];
-
-    const luoghiArr = ensureRegistroPresenzeLuoghiArray();
-
-    presidiArr.forEach(function (p) {
-      addUniqueName(presidiNames, p && p.NomePresidio);
-    });
-
-    ubicazioniArr.forEach(function (u) {
-      addUniqueName(ubicazioniNames, u && u.NomeUbicazione);
-    });
-
-    luoghiArr.forEach(function (luogo) {
-      addUniqueName(presidiNames, luogo && luogo.NomePresidio);
-
-      if (luogo && luogo.tipo === "ubicazione") {
-        addUniqueName(ubicazioniNames, luogo.NomeUbicazione);
+      if (luogo.NomeUbicazione && ubicazioni.indexOf(luogo.NomeUbicazione) === -1) {
+        ubicazioni.push(luogo.NomeUbicazione);
       }
     });
 
     return {
-      cittaNome: presidiNames.length > 0 ? presidiNames.join(", ") : null,
-      cantiereNome: ubicazioniNames.length > 0 ? ubicazioniNames.join(", ") : null
+      cittaNome: presidi.length ? presidi.join(", ") : null,
+      cantiereNome: ubicazioni.length ? ubicazioni.join(", ") : null,
+      luoghi: luoghi
     };
   }
 
   window.getRegistroPresenzeLuogoNames = getRegistroPresenzeLuogoNames;
+  window.getRegistroPresenzeLuoghi = cloneLuoghi;
 
-  function sortBySearchPriority(a, b, fieldName, query) {
-    const nameA = normalizzaRicercaRegistro(a && a[fieldName]);
-    const nameB = normalizzaRicercaRegistro(b && b[fieldName]);
-    const aStarts = nameA.indexOf(query) === 0;
-    const bStarts = nameB.indexOf(query) === 0;
+  function buildLuoghiFromLegacyActive(activeCheckin) {
+    const presidiNames = String(activeCheckin && activeCheckin.cittaNome || "")
+      .split(",")
+      .map(function (value) { return value.trim(); })
+      .filter(Boolean);
+    const ubicazioniNames = String(activeCheckin && activeCheckin.cantiereNome || "")
+      .split(",")
+      .map(function (value) { return value.trim(); })
+      .filter(Boolean);
+    const result = [];
 
-    if (aStarts && !bStarts) return -1;
-    if (!aStarts && bStarts) return 1;
+    ubicazioniNames.forEach(function (nomeUbicazione, index) {
+      const nomePresidioPreferito = presidiNames.length === 1
+        ? presidiNames[0]
+        : (presidiNames[index] || "");
+      const ubicazione = findUbicazioneByNameAndPresidio(
+        nomeUbicazione,
+        nomePresidioPreferito
+      );
+      const presidio = ubicazione
+        ? findPresidioForUbicazione(ubicazione)
+        : findPresidioByName(nomePresidioPreferito);
 
-    return String(a && a[fieldName] || "").localeCompare(String(b && b[fieldName] || ""));
-  }
-
-  function matchesSmartSearch(name, query) {
-    return normalizzaRicercaRegistro(name).indexOf(query) !== -1;
-  }
-
-  function getLuogoSearchResults(query) {
-    const normalizedQuery = normalizzaRicercaRegistro(query);
-    const results = [];
-    const seen = {};
-
-    if (!normalizedQuery) {
-      return results;
-    }
-
-    const presidiList = Array.isArray(dati.presidi) ? dati.presidi : [];
-    const ubicazioniList = Array.isArray(dati.ubicazioni) ? dati.ubicazioni : [];
-
-    function pushResult(result) {
-      if (!result || !result.key || seen[result.key]) {
-        return;
+      if (presidio) {
+        result.push(normalizeLuogo({
+          CodiceCitta: presidio.CodiceCitta,
+          CodicePresidio: presidio.CodicePresidio,
+          CodiceUbicazione: ubicazione && ubicazione.CodiceUbicazione,
+          NomePresidio: presidio.NomePresidio,
+          NomeUbicazione: nomeUbicazione
+        }));
       }
-
-      seen[result.key] = true;
-      results.push(result);
-    }
-
-    presidiList.forEach(function (p) {
-      const nomePresidio = String(p && p.NomePresidio || "").trim();
-      const normalizedName = normalizzaRicercaRegistro(nomePresidio);
-
-      if (!nomePresidio || normalizedName.indexOf(normalizedQuery) === -1) {
-        return;
-      }
-
-      pushResult({
-        key: "p|" + String(p.CodiceCitta || "") + "|" + String(p.CodicePresidio || ""),
-        tipo: "presidio",
-        label: nomePresidio,
-        score: normalizedName.indexOf(normalizedQuery) === 0 ? 0 : 40,
-        presidio: p
-      });
     });
 
-    ubicazioniList.forEach(function (u) {
-      const presidio = findPresidioForUbicazione(u);
-      const nomePresidio = String(
-        (presidio && presidio.NomePresidio) ||
-        (u && u.NomePresidio) ||
-        ""
-      ).trim();
-      const nomeUbicazione = String(u && u.NomeUbicazione || "").trim();
-
-      if (!nomeUbicazione) {
-        return;
-      }
-
-      const normalizedPresidio = normalizzaRicercaRegistro(nomePresidio);
-      const normalizedUbicazione = normalizzaRicercaRegistro(nomeUbicazione);
-      const presidioStarts = normalizedPresidio.indexOf(normalizedQuery) === 0;
-      const presidioContains = normalizedPresidio.indexOf(normalizedQuery) !== -1;
-      const ubicazioneStarts = normalizedUbicazione.indexOf(normalizedQuery) === 0;
-      const ubicazioneContains = normalizedUbicazione.indexOf(normalizedQuery) !== -1;
-
-      if (!presidioContains && !ubicazioneContains) {
-        return;
-      }
-
-      let score = 80;
-      if (ubicazioneStarts) {
-        score = 10;
-      } else if (ubicazioneContains) {
-        score = 20;
-      } else if (presidioStarts) {
-        score = 30;
-      } else if (presidioContains) {
-        score = 50;
-      }
-
-      pushResult({
-        key: "u|" +
-          String(u.CodiceCitta || "") + "|" +
-          String(u.CodicePresidio || "") + "|" +
-          String(u.CodiceUbicazione || ""),
-        tipo: "ubicazione",
-        label: nomePresidio ? nomePresidio + " - " + nomeUbicazione : nomeUbicazione,
-        score: score,
-        presidio: presidio,
-        ubicazione: u
+    presidiNames.forEach(function (nomePresidio) {
+      const alreadyIncluded = result.some(function (luogo) {
+        return normalizzaRicercaRegistro(luogo && luogo.NomePresidio) ===
+          normalizzaRicercaRegistro(nomePresidio);
       });
+
+      if (alreadyIncluded) return;
+
+      const presidio = findPresidioByName(nomePresidio);
+      result.push(normalizeLuogo({
+        CodiceCitta: presidio && presidio.CodiceCitta,
+        CodicePresidio: presidio && presidio.CodicePresidio,
+        NomePresidio: nomePresidio
+      }));
     });
 
-    return results.sort(function (a, b) {
-      if (a.score !== b.score) {
-        return a.score - b.score;
-      }
-
-      return String(a.label || "").localeCompare(String(b.label || ""), "it", {
-        sensitivity: "base"
-      });
-    });
+    return result.filter(Boolean);
   }
 
-  function isLuogoAlreadySelected(result) {
-    const key = result && result.key ? result.key : "";
-    if (!key) return false;
-
-    return ensureRegistroPresenzeLuoghiArray().some(function (selected) {
-      return luogoKey(selected) === key;
-    });
-  }
-
-  function addLuogoFromSearchResult(result) {
-    if (!result || isLuogoAlreadySelected(result)) {
-      return;
-    }
-
-    const luoghi = ensureRegistroPresenzeLuoghiArray();
-
-    if (result.tipo === "ubicazione") {
-      const u = result.ubicazione || {};
-      const p = result.presidio || {};
-
-      luoghi.push({
-        tipo: "ubicazione",
-        CodiceCitta: u.CodiceCitta,
-        CodicePresidio: u.CodicePresidio,
-        CodiceUbicazione: u.CodiceUbicazione,
-        NomePresidio: p.NomePresidio || u.NomePresidio || "",
-        NomeUbicazione: u.NomeUbicazione || ""
-      });
-    } else {
-      const p = result.presidio || {};
-
-      luoghi.push({
-        tipo: "presidio",
-        CodiceCitta: p.CodiceCitta,
-        CodicePresidio: p.CodicePresidio,
-        NomePresidio: p.NomePresidio || ""
-      });
-    }
-
-    window.registroPresenzeLuogoTouched = true;
-  }
-
-  function selectedPresidioKeys() {
-    return window.selectedRegistroPresenzePresidi
-      .filter(hasPresidioCodes)
-      .map(presidioKey);
-  }
-
-  function selectedUbicazionePresidioKeys() {
-    return window.selectedRegistroPresenzeUbicazioni
-      .filter(hasUbicazioneCodes)
-      .map(function (u) {
-        return String(u.CodiceCitta) + "|" + String(u.CodicePresidio);
-      });
-  }
-
-  function isPresidioCompatibleWithSelectedUbicazioni(p) {
-    const keys = selectedUbicazionePresidioKeys();
-    if (keys.length === 0) return true;
-    return keys.indexOf(presidioKey(p)) !== -1;
-  }
-
-  function isUbicazioneCompatibleWithSelectedPresidi(u) {
-    const keys = selectedPresidioKeys();
-    if (keys.length === 0) return true;
-    return keys.indexOf(String(u.CodiceCitta) + "|" + String(u.CodicePresidio)) !== -1;
-  }
-
-  function reconcileUbicazioniWithSelectedPresidi() {
-    if (!Array.isArray(window.selectedRegistroPresenzeUbicazioni)) {
-      window.selectedRegistroPresenzeUbicazioni = [];
-      return;
-    }
-
-    const keys = selectedPresidioKeys();
-    if (keys.length === 0) return;
-
-    window.selectedRegistroPresenzeUbicazioni = window.selectedRegistroPresenzeUbicazioni.filter(function (u) {
-      if (!hasUbicazioneCodes(u)) return true;
-      return keys.indexOf(String(u.CodiceCitta) + "|" + String(u.CodicePresidio)) !== -1;
-    });
-  }
-
-  // Se la pagina viene riaperta durante un servizio gia' attivo,
-  // carica i valori salvati nel check-in solo alla prima inizializzazione.
-  if (activeCheckin && !window.registroPresenzeLuogoTouched) {
-    if ((!Array.isArray(window.selectedRegistroPresenzePresidi) || window.selectedRegistroPresenzePresidi.length === 0) && activeCheckin.cittaNome) {
-      window.selectedRegistroPresenzePresidi = [];
-      activeCheckin.cittaNome.split(", ").forEach(function (name) {
-        const matched = findPresidioByName(name);
-        window.selectedRegistroPresenzePresidi.push(matched || { NomePresidio: name });
-      });
-    }
-
-    if ((!Array.isArray(window.selectedRegistroPresenzeUbicazioni) || window.selectedRegistroPresenzeUbicazioni.length === 0) && activeCheckin.cantiereNome) {
-      window.selectedRegistroPresenzeUbicazioni = [];
-      activeCheckin.cantiereNome.split(", ").forEach(function (name) {
-        const matched = findUbicazioneByName(name);
-        window.selectedRegistroPresenzeUbicazioni.push(matched || { NomeUbicazione: name });
-      });
-    }
-  }
-
-  renderPresidioChips();
-  renderUbicazioneChips();
-  renderLuogoChips();
-
-  function syncRegistroPresenzeActiveLuogo() {
-    const active = window.CvlsGeobollatura && typeof window.CvlsGeobollatura.getActiveCheckin === "function"
+  const activeCheckin = window.CvlsGeobollatura &&
+    typeof window.CvlsGeobollatura.getActiveCheckin === "function"
       ? window.CvlsGeobollatura.getActiveCheckin()
       : null;
+
+  if (activeCheckin && !window.registroPresenzeLuogoTouched && ensureLuoghiArray().length === 0) {
+    window.selectedRegistroPresenzeLuoghi = Array.isArray(activeCheckin.luoghi)
+      ? activeCheckin.luoghi.map(normalizeLuogo).filter(Boolean)
+      : buildLuoghiFromLegacyActive(activeCheckin);
+  }
+
+  syncLegacySelectionArrays();
+
+  function syncRegistroPresenzeActiveLuogo() {
+    const active = window.CvlsGeobollatura &&
+      typeof window.CvlsGeobollatura.getActiveCheckin === "function"
+        ? window.CvlsGeobollatura.getActiveCheckin()
+        : null;
+
     if (!active) return;
 
     const names = getRegistroPresenzeLuogoNames();
-
     active.cittaNome = names.cittaNome;
     active.cantiereNome = names.cantiereNome;
+    active.luoghi = names.luoghi;
 
     localStorage.setItem("cvls_attendance_active", JSON.stringify(active));
   }
 
-  presidioInput.oninput = function () {
+  function clearSuggestions(container) {
+    container.innerHTML = "";
+    container.style.display = "none";
+  }
+
+  function renderNoResults(container) {
+    container.innerHTML = '<div style="padding:10px;color:#6b7280;font-size:13px;text-align:center;">Nessun risultato</div>';
+    container.style.display = "block";
+  }
+
+  function renderSuggestion(container, label, onSelect) {
+    const row = document.createElement("div");
+    row.style.padding = "10px";
+    row.style.cursor = "pointer";
+    row.style.fontSize = "14px";
+    row.style.borderBottom = "1px solid #f3f4f6";
+    row.textContent = label;
+    row.onmousedown = function (event) {
+      event.preventDefault();
+      onSelect();
+    };
+    row.onmouseenter = function () { row.style.backgroundColor = "#f3f4f6"; };
+    row.onmouseleave = function () { row.style.backgroundColor = ""; };
+    container.appendChild(row);
+  }
+
+  function sortByName(a, b, fieldName) {
+    return String(a && a[fieldName] || "").localeCompare(
+      String(b && b[fieldName] || ""),
+      "it",
+      { sensitivity: "base" }
+    );
+  }
+
+  function isSamePresidio(a, b) {
+    if (!a || !b) return false;
+    return String(a.CodiceCitta) === String(b.CodiceCitta) &&
+      String(a.CodicePresidio) === String(b.CodicePresidio);
+  }
+
+  function selectPresidio(presidio) {
+    pendingPresidio = presidio;
+    presidioInput.value = String(presidio && presidio.NomePresidio || "");
+    clearSuggestions(presidioSuggestions);
+
+    if (pendingUbicazione) {
+      const owner = findPresidioForUbicazione(pendingUbicazione);
+      if (!isSamePresidio(owner, pendingPresidio)) {
+        pendingUbicazione = null;
+        ubicazioneInput.value = "";
+      }
+    }
+  }
+
+  function selectUbicazione(ubicazione) {
+    const owner = findPresidioForUbicazione(ubicazione);
+    if (!owner) {
+      cvlsAlert(
+        "Impossibile identificare il presidio associato a questa ubicazione.",
+        "Luogo"
+      );
+      return;
+    }
+
+    pendingPresidio = owner;
+    pendingUbicazione = ubicazione;
+    presidioInput.value = String(owner.NomePresidio || "");
+    ubicazioneInput.value = String(ubicazione.NomeUbicazione || "");
+    clearSuggestions(presidioSuggestions);
+    clearSuggestions(ubicazioneSuggestions);
+  }
+
+  function renderPresidioSuggestions() {
     const query = normalizzaRicercaRegistro(presidioInput.value);
-    if (!query) {
-      presidioSuggestions.innerHTML = "";
-      presidioSuggestions.style.display = "none";
+    clearSuggestions(presidioSuggestions);
+
+    if (!query) return;
+
+    const results = (Array.isArray(dati.presidi) ? dati.presidi : [])
+      .filter(function (presidio) {
+        return normalizzaRicercaRegistro(presidio && presidio.NomePresidio).indexOf(query) !== -1;
+      })
+      .sort(function (a, b) { return sortByName(a, b, "NomePresidio"); })
+      .slice(0, 80);
+
+    if (!results.length) {
+      renderNoResults(presidioSuggestions);
       return;
     }
 
-    const list = Array.isArray(dati.presidi) ? dati.presidi : [];
-    const filtered = list.filter(function (p) {
-      return isPresidioCompatibleWithSelectedUbicazioni(p) &&
-             matchesSmartSearch(p.NomePresidio, query);
-    }).sort(function (a, b) {
-      return sortBySearchPriority(a, b, "NomePresidio", query);
+    results.forEach(function (presidio) {
+      renderSuggestion(
+        presidioSuggestions,
+        String(presidio.NomePresidio || ""),
+        function () { selectPresidio(presidio); }
+      );
     });
 
-    if (filtered.length === 0) {
-      presidioSuggestions.innerHTML = '<div style="padding: 10px; color: #6b7280; font-size: 13px; text-align: center;">Nessun risultato</div>';
-    } else {
-      presidioSuggestions.innerHTML = "";
-      filtered.forEach(function (p) {
-        const alreadySelected = window.selectedRegistroPresenzePresidi.some(function (sel) {
-          return hasPresidioCodes(sel) && String(sel.CodiceCitta) === String(p.CodiceCitta) && String(sel.CodicePresidio) === String(p.CodicePresidio);
-        });
-        if (alreadySelected) return;
-
-        const div = document.createElement("div");
-        div.style.padding = "10px";
-        div.style.cursor = "pointer";
-        div.style.fontSize = "14px";
-        div.style.borderBottom = "1px solid #f3f4f6";
-        div.textContent = p.NomePresidio;
-        div.onmousedown = function () {
-          window.selectedRegistroPresenzePresidi.push({
-            CodiceCitta: p.CodiceCitta,
-            CodicePresidio: p.CodicePresidio,
-            NomePresidio: p.NomePresidio
-          });
-          reconcileUbicazioniWithSelectedPresidi();
-          window.registroPresenzeLuogoTouched = true;
-          syncRegistroPresenzeActiveLuogo();
-          presidioInput.value = "";
-          presidioSuggestions.style.display = "none";
-          renderPresidioChips();
-          renderUbicazioneChips();
-        };
-        div.onmouseenter = function () { div.style.backgroundColor = "#f3f4f6"; };
-        div.onmouseleave = function () { div.style.backgroundColor = ""; };
-        presidioSuggestions.appendChild(div);
-      });
-    }
-    if (presidioSuggestions.children.length === 0) {
-      presidioSuggestions.innerHTML = '<div style="padding: 10px; color: #6b7280; font-size: 13px; text-align: center;">Nessun risultato</div>';
-    }
     presidioSuggestions.style.display = "block";
-  };
+  }
 
-  presidioInput.onblur = function () {
-    setTimeout(function () {
-      presidioSuggestions.style.display = "none";
-    }, 200);
-  };
-
-  ubicazioneInput.oninput = function () {
+  function renderUbicazioneSuggestions() {
     const query = normalizzaRicercaRegistro(ubicazioneInput.value);
-    if (!query) {
-      ubicazioneSuggestions.innerHTML = "";
-      ubicazioneSuggestions.style.display = "none";
+    clearSuggestions(ubicazioneSuggestions);
+
+    if (!query) return;
+
+    const results = (Array.isArray(dati.ubicazioni) ? dati.ubicazioni : [])
+      .filter(function (ubicazione) {
+        const owner = findPresidioForUbicazione(ubicazione);
+        const matchesOwner = !pendingPresidio || isSamePresidio(owner, pendingPresidio);
+        const searchText = normalizzaRicercaRegistro(
+          String(ubicazione && ubicazione.NomeUbicazione || "") + " " +
+          String(owner && owner.NomePresidio || "")
+        );
+        return matchesOwner && searchText.indexOf(query) !== -1;
+      })
+      .sort(function (a, b) {
+        const ownerA = findPresidioForUbicazione(a);
+        const ownerB = findPresidioForUbicazione(b);
+        const labelA = String(a && a.NomeUbicazione || "") + " " + String(ownerA && ownerA.NomePresidio || "");
+        const labelB = String(b && b.NomeUbicazione || "") + " " + String(ownerB && ownerB.NomePresidio || "");
+        return labelA.localeCompare(labelB, "it", { sensitivity: "base" });
+      })
+      .slice(0, 80);
+
+    if (!results.length) {
+      renderNoResults(ubicazioneSuggestions);
       return;
     }
 
-    let list = Array.isArray(dati.ubicazioni) ? dati.ubicazioni : [];
+    results.forEach(function (ubicazione) {
+      const owner = findPresidioForUbicazione(ubicazione);
+      const label = [
+        ubicazione && ubicazione.NomeUbicazione,
+        owner && owner.NomePresidio
+      ].filter(Boolean).join(" — ");
 
-    if (selectedPresidioKeys().length > 0) {
-      list = list.filter(function (u) {
-        return isUbicazioneCompatibleWithSelectedPresidi(u);
-      });
-    }
-
-    const filtered = list.filter(function (u) {
-      return matchesSmartSearch(u.NomeUbicazione, query);
-    }).sort(function (a, b) {
-      return sortBySearchPriority(a, b, "NomeUbicazione", query);
+      renderSuggestion(
+        ubicazioneSuggestions,
+        label,
+        function () { selectUbicazione(ubicazione); }
+      );
     });
 
-    if (filtered.length === 0) {
-      ubicazioneSuggestions.innerHTML = '<div style="padding: 10px; color: #6b7280; font-size: 13px; text-align: center;">Nessun risultato</div>';
-    } else {
-      ubicazioneSuggestions.innerHTML = "";
-      filtered.forEach(function (u) {
-        const alreadySelected = window.selectedRegistroPresenzeUbicazioni.some(function (sel) {
-          return hasUbicazioneCodes(sel) &&
-                 String(sel.CodiceCitta) === String(u.CodiceCitta) &&
-                 String(sel.CodicePresidio) === String(u.CodicePresidio) &&
-                 String(sel.CodiceUbicazione) === String(u.CodiceUbicazione);
-        });
-        if (alreadySelected) return;
-
-        const div = document.createElement("div");
-        div.style.padding = "10px";
-        div.style.cursor = "pointer";
-        div.style.fontSize = "14px";
-        div.style.borderBottom = "1px solid #f3f4f6";
-        div.textContent = u.NomeUbicazione;
-        div.onmousedown = function () {
-          window.selectedRegistroPresenzeUbicazioni.push({
-            CodiceCitta: u.CodiceCitta,
-            CodicePresidio: u.CodicePresidio,
-            CodiceUbicazione: u.CodiceUbicazione,
-            NomeUbicazione: u.NomeUbicazione
-          });
-          window.registroPresenzeLuogoTouched = true;
-          syncRegistroPresenzeActiveLuogo();
-          ubicazioneInput.value = "";
-          ubicazioneSuggestions.style.display = "none";
-          renderUbicazioneChips();
-        };
-        div.onmouseenter = function () { div.style.backgroundColor = "#f3f4f6"; };
-        div.onmouseleave = function () { div.style.backgroundColor = ""; };
-        ubicazioneSuggestions.appendChild(div);
-      });
-    }
-    if (ubicazioneSuggestions.children.length === 0) {
-      ubicazioneSuggestions.innerHTML = '<div style="padding: 10px; color: #6b7280; font-size: 13px; text-align: center;">Nessun risultato</div>';
-    }
     ubicazioneSuggestions.style.display = "block";
-  };
-
-  ubicazioneInput.onblur = function () {
-    setTimeout(function () {
-      ubicazioneSuggestions.style.display = "none";
-    }, 200);
-  };
-
-  if (luogoSearchAvailable) {
-    luogoInput.oninput = function () {
-      const query = normalizzaRicercaRegistro(luogoInput.value);
-
-      if (!query) {
-        luogoSuggestions.innerHTML = "";
-        luogoSuggestions.style.display = "none";
-        return;
-      }
-
-      const results = getLuogoSearchResults(query).filter(function (result) {
-        return !isLuogoAlreadySelected(result);
-      }).slice(0, 80);
-
-      if (results.length === 0) {
-        luogoSuggestions.innerHTML = '<div style="padding: 10px; color: #6b7280; font-size: 13px; text-align: center;">Nessun risultato</div>';
-      } else {
-        luogoSuggestions.innerHTML = "";
-
-        results.forEach(function (result) {
-          const div = document.createElement("div");
-          div.style.padding = "10px";
-          div.style.cursor = "pointer";
-          div.style.fontSize = "14px";
-          div.style.borderBottom = "1px solid #f3f4f6";
-          div.textContent = result.label;
-
-          div.onmousedown = function () {
-            addLuogoFromSearchResult(result);
-            syncRegistroPresenzeActiveLuogo();
-            luogoInput.value = "";
-            luogoSuggestions.style.display = "none";
-            renderLuogoChips();
-          };
-
-          div.onmouseenter = function () { div.style.backgroundColor = "#f3f4f6"; };
-          div.onmouseleave = function () { div.style.backgroundColor = ""; };
-          luogoSuggestions.appendChild(div);
-        });
-      }
-
-      luogoSuggestions.style.display = "block";
-    };
-
-    luogoInput.onblur = function () {
-      setTimeout(function () {
-        luogoSuggestions.style.display = "none";
-      }, 200);
-    };
   }
 
-  function renderPresidioChips() {
-    presidioSelectedContainer.innerHTML = "";
-
-    window.selectedRegistroPresenzePresidi.forEach(function (p, index) {
-      const chip = document.createElement("div");
-      chip.style.display = "flex";
-      chip.style.alignItems = "center";
-      chip.style.backgroundColor = "#eff6ff";
-      chip.style.border = "1px solid #bfdbfe";
-      chip.style.borderRadius = "16px";
-      chip.style.padding = "4px 10px";
-      chip.style.fontSize = "12px";
-      chip.style.fontWeight = "500";
-      chip.style.color = "#1e40af";
-      chip.style.gap = "6px";
-
-      const span = document.createElement("span");
-      span.textContent = p.NomePresidio;
-      chip.appendChild(span);
-
-      {
-        const close = document.createElement("span");
-        close.textContent = "x";
-        close.style.cursor = "pointer";
-        close.style.fontWeight = "bold";
-        close.style.color = "#3b82f6";
-        close.onclick = function () {
-          window.selectedRegistroPresenzePresidi.splice(index, 1);
-          reconcileUbicazioniWithSelectedPresidi();
-          window.registroPresenzeLuogoTouched = true;
-          syncRegistroPresenzeActiveLuogo();
-          renderPresidioChips();
-          renderUbicazioneChips();
-        };
-        chip.appendChild(close);
-      }
-      presidioSelectedContainer.appendChild(chip);
-    });
-  }
-
-  function renderUbicazioneChips() {
-    ubicazioneSelectedContainer.innerHTML = "";
-
-    window.selectedRegistroPresenzeUbicazioni.forEach(function (u, index) {
-      const chip = document.createElement("div");
-      chip.style.display = "flex";
-      chip.style.alignItems = "center";
-      chip.style.backgroundColor = "#f0fdf4";
-      chip.style.border = "1px solid #bbf7d0";
-      chip.style.borderRadius = "16px";
-      chip.style.padding = "4px 10px";
-      chip.style.fontSize = "12px";
-      chip.style.fontWeight = "500";
-      chip.style.color = "#166534";
-      chip.style.gap = "6px";
-
-      const span = document.createElement("span");
-      span.textContent = u.NomeUbicazione;
-      chip.appendChild(span);
-
-      {
-        const close = document.createElement("span");
-        close.textContent = "x";
-        close.style.cursor = "pointer";
-        close.style.fontWeight = "bold";
-        close.style.color = "#22c55e";
-        close.onclick = function () {
-          window.selectedRegistroPresenzeUbicazioni.splice(index, 1);
-          window.registroPresenzeLuogoTouched = true;
-          syncRegistroPresenzeActiveLuogo();
-          renderUbicazioneChips();
-        };
-        chip.appendChild(close);
-      }
-      ubicazioneSelectedContainer.appendChild(chip);
-    });
+  function clearPendingFields() {
+    pendingPresidio = null;
+    pendingUbicazione = null;
+    presidioInput.value = "";
+    ubicazioneInput.value = "";
+    clearSuggestions(presidioSuggestions);
+    clearSuggestions(ubicazioneSuggestions);
   }
 
   function renderLuogoChips() {
-    if (!luogoSearchAvailable) {
-      return;
-    }
+    selectedContainer.innerHTML = "";
 
-    luogoSelectedContainer.innerHTML = "";
-
-    ensureRegistroPresenzeLuoghiArray().forEach(function (luogo, index) {
+    ensureLuoghiArray().forEach(function (luogo, index) {
       const chip = document.createElement("div");
       chip.style.display = "flex";
       chip.style.alignItems = "center";
       chip.style.backgroundColor = "#f5f3ff";
       chip.style.border = "1px solid #ddd6fe";
       chip.style.borderRadius = "16px";
-      chip.style.padding = "4px 10px";
+      chip.style.padding = "6px 10px";
       chip.style.fontSize = "12px";
-      chip.style.fontWeight = "500";
+      chip.style.fontWeight = "600";
       chip.style.color = "#5b21b6";
-      chip.style.gap = "6px";
+      chip.style.gap = "8px";
+      chip.style.maxWidth = "100%";
 
-      const label = luogo && luogo.tipo === "ubicazione"
-        ? [luogo.NomePresidio, luogo.NomeUbicazione].filter(Boolean).join(" - ")
-        : String(luogo && luogo.NomePresidio || "");
+      const label = document.createElement("span");
+      label.style.overflowWrap = "anywhere";
+      label.textContent = luogo.NomeUbicazione
+        ? luogo.NomePresidio + " — " + luogo.NomeUbicazione
+        : luogo.NomePresidio;
+      chip.appendChild(label);
 
-      const span = document.createElement("span");
-      span.textContent = label;
-      chip.appendChild(span);
-
-      const close = document.createElement("span");
-      close.textContent = "x";
+      const close = document.createElement("button");
+      close.type = "button";
+      close.setAttribute("aria-label", "Elimina luogo");
+      close.textContent = "×";
+      close.style.border = "0";
+      close.style.background = "transparent";
+      close.style.padding = "0";
+      close.style.margin = "0";
       close.style.cursor = "pointer";
       close.style.fontWeight = "bold";
+      close.style.fontSize = "18px";
+      close.style.lineHeight = "1";
       close.style.color = "#7c3aed";
       close.onclick = function () {
-        ensureRegistroPresenzeLuoghiArray().splice(index, 1);
+        ensureLuoghiArray().splice(index, 1);
+        syncLegacySelectionArrays();
         window.registroPresenzeLuogoTouched = true;
         syncRegistroPresenzeActiveLuogo();
         renderLuogoChips();
       };
       chip.appendChild(close);
 
-      luogoSelectedContainer.appendChild(chip);
+      selectedContainer.appendChild(chip);
     });
   }
 
-  window.renderRegistroPresenzeLuogoChips = function () {
-    renderPresidioChips();
-    renderUbicazioneChips();
+  function addPendingLuogo() {
+    if (!pendingPresidio) {
+      cvlsAlert(
+        "Seleziona un presidio dai risultati della ricerca. L'ubicazione è facoltativa.",
+        "Luogo"
+      );
+      return;
+    }
+
+    const luogo = normalizeLuogo({
+      CodiceCitta: pendingPresidio.CodiceCitta,
+      CodicePresidio: pendingPresidio.CodicePresidio,
+      CodiceUbicazione: pendingUbicazione && pendingUbicazione.CodiceUbicazione,
+      NomePresidio: pendingPresidio.NomePresidio,
+      NomeUbicazione: pendingUbicazione && pendingUbicazione.NomeUbicazione
+    });
+
+    const key = luogoKey(luogo);
+    const duplicate = ensureLuoghiArray().some(function (selected) {
+      return luogoKey(selected) === key;
+    });
+
+    if (duplicate) {
+      cvlsAlert("Questo luogo è già stato aggiunto.", "Luogo");
+      return;
+    }
+
+    ensureLuoghiArray().push(luogo);
+    syncLegacySelectionArrays();
+    window.registroPresenzeLuogoTouched = true;
+    syncRegistroPresenzeActiveLuogo();
+    clearPendingFields();
     renderLuogoChips();
+  }
+
+  presidioInput.disabled = false;
+  ubicazioneInput.disabled = false;
+  addButton.disabled = false;
+
+  presidioInput.oninput = function () {
+    if (
+      pendingPresidio &&
+      normalizzaRicercaRegistro(presidioInput.value) !==
+        normalizzaRicercaRegistro(pendingPresidio.NomePresidio)
+    ) {
+      pendingPresidio = null;
+      pendingUbicazione = null;
+      ubicazioneInput.value = "";
+    }
+
+    renderPresidioSuggestions();
   };
+
+  ubicazioneInput.oninput = function () {
+    if (
+      pendingUbicazione &&
+      normalizzaRicercaRegistro(ubicazioneInput.value) !==
+        normalizzaRicercaRegistro(pendingUbicazione.NomeUbicazione)
+    ) {
+      pendingUbicazione = null;
+    }
+
+    renderUbicazioneSuggestions();
+  };
+
+  presidioInput.onblur = function () {
+    window.setTimeout(function () {
+      clearSuggestions(presidioSuggestions);
+    }, 200);
+  };
+
+  ubicazioneInput.onblur = function () {
+    window.setTimeout(function () {
+      clearSuggestions(ubicazioneSuggestions);
+    }, 200);
+  };
+
+  addButton.onclick = addPendingLuogo;
+
+  [presidioInput, ubicazioneInput].forEach(function (input) {
+    input.onkeydown = function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        addPendingLuogo();
+      }
+    };
+  });
+
+  window.renderRegistroPresenzeLuogoChips = renderLuogoChips;
 
   window.resetRegistroPresenzeLuogoSelections = function () {
     window.selectedRegistroPresenzePresidi = [];
     window.selectedRegistroPresenzeUbicazioni = [];
     window.selectedRegistroPresenzeLuoghi = [];
     window.registroPresenzeLuogoTouched = false;
-
-    presidioInput.value = "";
-    ubicazioneInput.value = "";
-    presidioSuggestions.innerHTML = "";
-    ubicazioneSuggestions.innerHTML = "";
-    presidioSuggestions.style.display = "none";
-    ubicazioneSuggestions.style.display = "none";
-
-    if (luogoSearchAvailable) {
-      luogoInput.value = "";
-      luogoSuggestions.innerHTML = "";
-      luogoSuggestions.style.display = "none";
-    }
-
-    renderPresidioChips();
-    renderUbicazioneChips();
+    clearPendingFields();
     renderLuogoChips();
   };
+
+  renderLuogoChips();
 }
 function openRegPresListModal() {
   renderRegistroPresenzeList();
@@ -7066,11 +6917,17 @@ function renderRegistroPresenzeList() {
     const statusSyncColor = isPending ? "#d97706" : "#059669";
 
     let detailsHtml = "";
-    if (b.citta_nome) {
-      detailsHtml += '<div>Presidio: <strong>' + b.citta_nome + '</strong></div>';
-    }
-    if (b.cantiere_nome) {
-      detailsHtml += '<div>Ubicazione: <strong>' + b.cantiere_nome + '</strong></div>';
+    const luogoLabels = cvlsGetBollaturaLuogoLabels(b);
+
+    if (luogoLabels.length > 0) {
+      detailsHtml += '<div>Luogo: <strong>' + escapeHtml(luogoLabels.join(" / ")) + '</strong></div>';
+    } else {
+      if (b.citta_nome) {
+        detailsHtml += '<div>Presidio: <strong>' + escapeHtml(b.citta_nome) + '</strong></div>';
+      }
+      if (b.cantiere_nome) {
+        detailsHtml += '<div>Ubicazione: <strong>' + escapeHtml(b.cantiere_nome) + '</strong></div>';
+      }
     }
 
     const pausaPranzo = String(
@@ -7092,7 +6949,16 @@ function renderRegistroPresenzeList() {
 
     if (b.totale_calcolato_testo || Number.isFinite(Number(b.totale_calcolato_minuti))) {
       const totaleCalcolato = b.totale_calcolato_testo || formatRegistroPresenzeListMinutes(b.totale_calcolato_minuti);
-      detailsHtml += '<div>Totale calcolato: <strong>' + totaleCalcolato + '</strong></div>';
+      detailsHtml += '<div>Totale calcolato: <strong>' + escapeHtml(totaleCalcolato) + '</strong></div>';
+    }
+
+    if (
+      b.ore_permesso_testo ||
+      (b.ore_permesso_minuti !== null && b.ore_permesso_minuti !== undefined &&
+        Number.isFinite(Number(b.ore_permesso_minuti)) && Number(b.ore_permesso_minuti) > 0)
+    ) {
+      const orePermesso = b.ore_permesso_testo || formatRegistroPresenzeListMinutes(b.ore_permesso_minuti);
+      detailsHtml += '<div>Ore permesso: <strong>' + escapeHtml(orePermesso) + '</strong></div>';
     }
 
     if (b.regola_calcolo) {
@@ -7197,9 +7063,41 @@ function cvlsMinutesToHourText(minutes, emptyIfZero) {
   return sign + hours + "h " + cvlsPad2(mins) + "m";
 }
 
+function cvlsGetBollaturaLuoghiArray(bollatura) {
+  if (!bollatura || !Array.isArray(bollatura.luoghi)) {
+    return [];
+  }
+
+  return bollatura.luoghi.filter(function (luogo) {
+    return luogo && String(
+      luogo.NomePresidio || luogo.nome_presidio || luogo.presidio || ""
+    ).trim();
+  });
+}
+
+function cvlsGetBollaturaLuogoLabels(bollatura) {
+  const luoghi = cvlsGetBollaturaLuoghiArray(bollatura);
+
+  return luoghi.map(function (luogo) {
+    const presidio = String(
+      luogo.NomePresidio || luogo.nome_presidio || luogo.presidio || ""
+    ).trim();
+    const ubicazione = String(
+      luogo.NomeUbicazione || luogo.nome_ubicazione || luogo.ubicazione || ""
+    ).trim();
+
+    return ubicazione ? presidio + " — " + ubicazione : presidio;
+  }).filter(Boolean);
+}
+
 function cvlsGetBollaturaLuogoText(bollatura) {
   if (!bollatura) {
     return "";
+  }
+
+  const labels = cvlsGetBollaturaLuogoLabels(bollatura);
+  if (labels.length > 0) {
+    return cvlsUniqueJoin(labels, " / ");
   }
 
   const presidio = String(bollatura.citta_nome || "").trim();
@@ -7380,6 +7278,7 @@ function cvlsBuildFoglioOreMensileData() {
 
   const rows = [];
   let totaleGiornalieroMinuti = 0;
+  let totalePermessoMinuti = 0;
   let totaleStraordinarioMinuti = 0;
   let totaleViaggioMinuti = 0;
   let totaleReperibilitaMinuti = 0;
@@ -7433,6 +7332,22 @@ function cvlsBuildFoglioOreMensileData() {
       return totale;
     }, 0);
 
+    const permessoMinuti = uscite.reduce(function (totale, item) {
+      const raw = item.raw || {};
+      const salvato = Number(raw.ore_permesso_minuti);
+
+      if (Number.isFinite(salvato) && salvato >= 0) {
+        return totale + Math.round(salvato);
+      }
+
+      const calcolato = Number(raw.totale_calcolato_minuti);
+      if (Number.isFinite(calcolato) && calcolato > 0 && calcolato < 480) {
+        return totale + Math.max(0, 480 - Math.round(calcolato));
+      }
+
+      return totale;
+    }, 0);
+
     const straordinarioMinuti = Math.max(0, totaleCalcolatoMinuti - 480);
     const note = [];
 
@@ -7449,6 +7364,7 @@ function cvlsBuildFoglioOreMensileData() {
     }
 
     totaleGiornalieroMinuti += totaleCalcolatoMinuti;
+    totalePermessoMinuti += permessoMinuti;
     totaleStraordinarioMinuti += straordinarioMinuti;
     totalePranzoMinuti += pranzoMinuti;
 
@@ -7460,6 +7376,8 @@ function cvlsBuildFoglioOreMensileData() {
       uscita: lastUscita ? cvlsFormatRegistroTime(lastUscita.raw.orario) : "",
       totaleGiornoMinuti: totaleCalcolatoMinuti,
       totaleGiorno: cvlsMinutesToHourText(totaleCalcolatoMinuti, true),
+      orePermessoMinuti: permessoMinuti,
+      orePermesso: cvlsMinutesToHourText(permessoMinuti, true),
       oreStraordinarioMinuti: straordinarioMinuti,
       oreStraordinario: cvlsMinutesToHourText(straordinarioMinuti, true),
       oreViaggioMinuti: 0,
@@ -7482,6 +7400,8 @@ function cvlsBuildFoglioOreMensileData() {
     totals: {
       totaleGiornalieroMinuti: totaleGiornalieroMinuti,
       totaleGiornaliero: cvlsMinutesToHourText(totaleGiornalieroMinuti, false),
+      totalePermessoMinuti: totalePermessoMinuti,
+      totalePermesso: cvlsMinutesToHourText(totalePermessoMinuti, false),
       totaleStraordinarioMinuti: totaleStraordinarioMinuti,
       totaleStraordinario: cvlsMinutesToHourText(totaleStraordinarioMinuti, false),
       totaleViaggioMinuti: totaleViaggioMinuti,
@@ -7511,6 +7431,7 @@ function renderRegistroPresenzeFoglioOrePreview() {
       "<td>" + escapeHtml(row.ingresso) + "</td>" +
       "<td>" + escapeHtml(row.uscita) + "</td>" +
       "<td>" + escapeHtml(row.totaleGiorno) + "</td>" +
+      "<td>" + escapeHtml(row.orePermesso) + "</td>" +
       "<td>" + escapeHtml(row.oreViaggio) + "</td>" +
       "<td>" + escapeHtml(row.oreStraordinario) + "</td>" +
       "<td>" + escapeHtml(row.reperibilita) + "</td>" +
@@ -7536,6 +7457,7 @@ function renderRegistroPresenzeFoglioOrePreview() {
               "<th>Ingresso</th>" +
               "<th>Uscita</th>" +
               "<th>Tot ore giorno</th>" +
+              "<th>Ore permesso</th>" +
               "<th>Ore viaggio</th>" +
               "<th>Ore straordinario</th>" +
               "<th>Reperibilità</th>" +
@@ -7549,6 +7471,7 @@ function renderRegistroPresenzeFoglioOrePreview() {
       "</div>" +
       "<div style=\"margin-top: 14px; border-top: 1px solid #e5e7eb; padding-top: 12px; font-size: 13px; color: #374151; line-height: 1.7;\">" +
         "<div><strong>Totale ore giornaliere:</strong> " + escapeHtml(data.totals.totaleGiornaliero) + "</div>" +
+        "<div><strong>Totale ore permesso:</strong> " + escapeHtml(data.totals.totalePermesso) + "</div>" +
         "<div><strong>Totale ore straordinario:</strong> " + escapeHtml(data.totals.totaleStraordinario) + "</div>" +
         "<div><strong>Totale ore viaggio:</strong> " + escapeHtml(data.totals.totaleViaggio) + "</div>" +
         "<div><strong>Settimane reperibilità:</strong> " + escapeHtml(String(data.totals.settimaneReperibilita || 0)) + "</div>" +
@@ -7788,16 +7711,17 @@ function cvlsBuildFoglioOreMensilePdfBytes(data) {
 
   const columns = [
     { key: "giorno", label: "Giorno", width: 34, max: 5, align: "center" },
-    { key: "luogo", label: "Luogo", width: 172, max: 32, align: "left" },
-    { key: "ingresso", label: "Ingresso", width: 56, max: 8, align: "center" },
-    { key: "uscita", label: "Uscita", width: 56, max: 8, align: "center" },
-    { key: "totaleGiorno", label: "Tot ore", width: 70, max: 10, align: "center" },
-    { key: "oreViaggio", label: "Viaggio", width: 56, max: 9, align: "center" },
-    { key: "oreStraordinario", label: "Straord.", width: 70, max: 10, align: "center" },
-    { key: "reperibilita", label: "Rep.", width: 50, max: 5, align: "center" },
-    { key: "oreReperibilita", label: "Ore rep.", width: 64, max: 10, align: "center" },
-    { key: "pranzo", label: "Pranzo", width: 50, max: 8, align: "center" },
-    { key: "note", label: "Note", width: 136, max: 25, align: "left" }
+    { key: "luogo", label: "Luogo", width: 140, max: 25, align: "left" },
+    { key: "ingresso", label: "Ingresso", width: 50, max: 8, align: "center" },
+    { key: "uscita", label: "Uscita", width: 50, max: 8, align: "center" },
+    { key: "totaleGiorno", label: "Tot ore", width: 60, max: 10, align: "center" },
+    { key: "orePermesso", label: "Permesso", width: 60, max: 10, align: "center" },
+    { key: "oreViaggio", label: "Viaggio", width: 50, max: 9, align: "center" },
+    { key: "oreStraordinario", label: "Straord.", width: 60, max: 10, align: "center" },
+    { key: "reperibilita", label: "Rep.", width: 40, max: 5, align: "center" },
+    { key: "oreReperibilita", label: "Ore rep.", width: 55, max: 10, align: "center" },
+    { key: "pranzo", label: "Pranzo", width: 45, max: 8, align: "center" },
+    { key: "note", label: "Note", width: 170, max: 31, align: "left" }
   ];
 
   let content = "0.55 w\n";
@@ -7844,7 +7768,7 @@ function cvlsBuildFoglioOreMensilePdfBytes(data) {
   drawLine(pageWidth - 134, headerY - 3, pageWidth - 52, headerY - 3);
 
   let x = margin;
-  const tableBottom = tableTop - rowHeight * 38;
+  const tableBottom = tableTop - rowHeight * 39;
 
   drawRect(margin, tableTop - rowHeight, contentWidth, rowHeight, true);
   columns.forEach(function (column) {
@@ -7854,7 +7778,7 @@ function cvlsBuildFoglioOreMensilePdfBytes(data) {
   });
   drawLine(margin + contentWidth, tableTop, margin + contentWidth, tableBottom);
 
-  for (let i = 0; i <= 38; i++) {
+  for (let i = 0; i <= 39; i++) {
     const y = tableTop - rowHeight * i;
     drawLine(margin, y, margin + contentWidth, y);
   }
@@ -7872,6 +7796,7 @@ function cvlsBuildFoglioOreMensilePdfBytes(data) {
 
   const totalRows = [
     ["Totale ore giornaliere", data.totals.totaleGiornaliero],
+    ["Totale ore permesso", data.totals.totalePermesso],
     ["Totale ore straordinario", data.totals.totaleStraordinario],
     ["Totale ore viaggio", data.totals.totaleViaggio],
     ["Settimane reperibilita", String(data.totals.settimaneReperibilita || 0)],
