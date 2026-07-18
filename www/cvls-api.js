@@ -334,6 +334,98 @@ async function applyPendingChangeToSupabase(change) {
         });
         if (error) throw error;
     }
+    // -------------------------------------------------------
+    // ORE VIAGGIO
+    // -------------------------------------------------------
+    else if (type === "SAVE_ORE_VIAGGIO") {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user ? user.id : null;
+        if (!userId) throw new Error("Utente non autenticato");
+        const { error } = await supabase.from('registro_giornaliero').upsert({
+            user_id: userId,
+            data: payload.data,
+            ore_viaggio_minuti: Number(payload.ore_viaggio_minuti) || 0,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,data' });
+        if (error) throw error;
+    }
+    else if (type === "DELETE_ORE_VIAGGIO") {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user ? user.id : null;
+        if (!userId) throw new Error("Utente non autenticato");
+        const { error } = await supabase.from('registro_giornaliero')
+            .delete()
+            .eq('user_id', userId)
+            .eq('data', payload.data);
+        if (error) throw error;
+    }
+    // -------------------------------------------------------
+    // PERIODI REPERIBILITÀ
+    // -------------------------------------------------------
+    else if (type === "SAVE_REP_PERIODO") {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user ? user.id : null;
+        if (!userId) throw new Error("Utente non autenticato");
+        const localId = String(payload.id || "").trim();
+        const { error } = await supabase.from('reperibilita_periodi').upsert({
+            id:          localId,
+            user_id:     userId,
+            data_inizio: payload.data_inizio,
+            data_fine:   payload.data_fine,
+            updated_at:  new Date().toISOString()
+        }, { onConflict: 'id' });
+        if (error) throw error;
+    }
+    else if (type === "DELETE_REP_PERIODO") {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user ? user.id : null;
+        if (!userId) throw new Error("Utente non autenticato");
+        const localId = String(payload.id || "").trim();
+        if (!localId) return;
+        const { error } = await supabase.from('reperibilita_periodi')
+            .delete()
+            .eq('id', localId)
+            .eq('user_id', userId);
+        if (error) throw error;
+    }
+    // -------------------------------------------------------
+    // INTERVENTI REPERIBILITÀ
+    // -------------------------------------------------------
+    else if (type === "SAVE_REP_INTERVENTO") {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user ? user.id : null;
+        if (!userId) throw new Error("Utente non autenticato");
+        const localId = String(payload.id || "").trim();
+        const { error } = await supabase.from('reperibilita_interventi').upsert({
+            id:                localId,
+            user_id:           userId,
+            data:              payload.data,
+            ora_chiamata:      payload.ora_chiamata || null,
+            ora_partenza:      payload.ora_partenza || null,
+            durata_minuti:     Number(payload.durata_minuti) || 0,
+            codice_citta:      payload.codice_citta || "",
+            codice_presidio:   payload.codice_presidio || "",
+            codice_ubicazione: payload.codice_ubicazione || "",
+            nome_presidio:     payload.nome_presidio || "",
+            nome_ubicazione:   payload.nome_ubicazione || "",
+            numero_rit:        payload.numero_rit || "",
+            updated_at:        new Date().toISOString()
+        }, { onConflict: 'id' });
+        if (error) throw error;
+    }
+    else if (type === "DELETE_REP_INTERVENTO") {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user ? user.id : null;
+        if (!userId) throw new Error("Utente non autenticato");
+        const localId = String(payload.id || "").trim();
+        if (!localId) return;
+        const { error } = await supabase.from('reperibilita_interventi')
+            .delete()
+            .eq('id', localId)
+
+            .eq('user_id', userId);
+        if (error) throw error;
+    }
 }
 
 // Scarica l'intero database da Supabase e lo formatta come si aspetta l'app
@@ -359,7 +451,10 @@ async function fetchCompleteDatabaseFromSupabase() {
         { data: cantiere_materiali },
         { data: spese },
         { data: richieste_modifica },
-        { data: bollature }
+        { data: bollature },
+        res_registro_giornaliero,
+        res_reperibilita_periodi,
+        res_reperibilita_interventi
     ] = await Promise.all([
         supabase.from('citta').select('*'),
         supabase.from('presidi').select('*'),
@@ -381,8 +476,19 @@ async function fetchCompleteDatabaseFromSupabase() {
         supabase.from('bollature')
             .select('*')
             .eq('tecnico', String(localStorage.getItem("cvls_user_name") || "").trim())
-            .order('orario', { ascending: false })
+            .order('orario', { ascending: false }),
+        supabase.from('registro_giornaliero').select('*').order('data', { ascending: false }),
+        supabase.from('reperibilita_periodi').select('*').order('data_inizio', { ascending: false }),
+        supabase.from('reperibilita_interventi').select('*').order('data', { ascending: false })
     ]);
+
+    if (res_registro_giornaliero.error) throw res_registro_giornaliero.error;
+    if (res_reperibilita_periodi.error) throw res_reperibilita_periodi.error;
+    if (res_reperibilita_interventi.error) throw res_reperibilita_interventi.error;
+
+    const registro_giornaliero = res_registro_giornaliero.data;
+    const reperibilita_periodi = res_reperibilita_periodi.data;
+    const reperibilita_interventi = res_reperibilita_interventi.data;
 
     // Formatta anagrafica
     const formattedCitta = (citta || []).map(c => ({
@@ -603,7 +709,36 @@ async function fetchCompleteDatabaseFromSupabase() {
         cantiereAllegati: cantiere_allegati || [],
         cantiereMateriali: cantiere_materiali || [],
         spese: spese || [],
-        richiesteModifica: richieste_modifica || []
+        richiesteModifica: richieste_modifica || [],
+        oreViaggio: (registro_giornaliero || []).map(function(r) {
+            return {
+                id: r.id,
+                data: r.data,
+                ore_viaggio_minuti: Number(r.ore_viaggio_minuti) || 0
+            };
+        }),
+        reperibilita_periodi: (reperibilita_periodi || []).map(function(p) {
+            return {
+                id: p.id,
+                data_inizio: p.data_inizio,
+                data_fine: p.data_fine
+            };
+        }),
+        reperibilita_interventi: (reperibilita_interventi || []).map(function(i) {
+            return {
+                id: i.id,
+                data: i.data,
+                ora_chiamata: i.ora_chiamata || null,
+                ora_partenza: i.ora_partenza || null,
+                durata_minuti: Number(i.durata_minuti) || 0,
+                codice_citta: i.codice_citta || "",
+                codice_presidio: i.codice_presidio || "",
+                codice_ubicazione: i.codice_ubicazione || "",
+                nome_presidio: i.nome_presidio || "",
+                nome_ubicazione: i.nome_ubicazione || "",
+                numero_rit: i.numero_rit || ""
+            };
+        })
     };
 }
 

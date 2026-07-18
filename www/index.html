@@ -24,6 +24,7 @@
   <title>CVLS</title>
   <link rel="stylesheet" href="style.css?v=25" />
   <link rel="stylesheet" href="pages/nota-spese/nota-spese.css?v=3" />
+  <link rel="stylesheet" href="cvls-reperibilita.css?v=1" />
 </head>
 
 <body>
@@ -539,6 +540,7 @@
           </div>
         </div>
 
+      <!-- Elenco e preview -->
         <!-- Info Posizione -->
         <div class="admin-box">
           <span class="admin-title">Info Posizione</span>
@@ -614,12 +616,32 @@
           </div>
         </div>
 
+
         <!-- Bollatura -->
         <div class="admin-box">
           <span class="admin-title">Bollatura</span>
           <div style="display: flex; gap: 10px; margin-top: 15px;">
             <button id="regPresIngressoBtn" class="primary-btn" style="flex: 1; margin: 0 !important; padding: 0 12px; border-radius: 8px; height: 48px; font-weight: bold; font-size: 15px; cursor: pointer;">Ingresso</button>
             <button id="regPresUscitaBtn" class="secondary-btn" style="flex: 1; margin: 0 !important; padding: 0 12px; border-radius: 8px; height: 48px; font-weight: bold; font-size: 15px; background-color: #e5e7eb; color: #9ca3af; border: none; cursor: not-allowed;" disabled>Uscita</button>
+          </div>
+        </div>
+
+        <!-- Reperibilità -->
+        <div id="cvlsRepBox" class="admin-box">
+          <span class="admin-title">Reperibilità</span>
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+            <button id="cvlsRepAddPeriodoBtn" class="secondary-btn"
+              style="width: 100%; margin: 0 !important; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">+ Periodo reperibilità</button>
+            <button id="cvlsRepAddInterventoBtn" class="secondary-btn"
+              style="width: 100%; margin: 0 !important; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">+ Intervento reperibilità</button>
+          </div>
+          <div style="margin-top: 14px;">
+            <div style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;">Periodi</div>
+            <div id="cvlsRepPeriodiList" class="cvls-rep-list"></div>
+          </div>
+          <div style="margin-top: 14px;">
+            <div style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;">Interventi</div>
+            <div id="cvlsRepInterventiList" class="cvls-rep-list"></div>
           </div>
         </div>
 
@@ -768,6 +790,20 @@
       <div class="modal-body" style="padding: 15px 0; max-height: 70vh; overflow-y: auto;">
         <div id="regPresListContainer" style="display: flex; flex-direction: column; gap: 10px;">
           <!-- Bollature rendered here -->
+        </div>
+
+        <!-- Dati modificabili reperibilità -->
+        <div id="regPresDatiReperibilita" style="margin-top: 18px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #f9fafb; text-align: left;">
+          <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 10px;">Dati modificabili (Reperibilità)</div>
+          <div style="font-size: 12px; color: #4b5563; margin-bottom: 15px;">
+            Gestisci periodi e interventi di reperibilità. Le ore viaggio si modificano dalla riga giornaliera.
+          </div>
+          <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button class="primary-btn" style="flex: 1; padding: 8px; font-size: 12px; margin: 0;" onclick="CvlsReperibilita.openPeriodoDialog(null)">+ Periodo</button>
+            <button class="primary-btn" style="flex: 1; padding: 8px; font-size: 12px; margin: 0;" onclick="CvlsReperibilita.openInterventoDialog(null)">+ Intervento</button>
+          </div>
+          <div id="cvlsRegPresModificabiliPeriodi" style="margin-bottom: 15px;"></div>
+          <div id="cvlsRegPresModificabiliInterventi"></div>
         </div>
 
         <div id="regPresFoglioOrePeriodo" style="margin-top: 18px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #f9fafb; text-align: left;">
@@ -958,13 +994,124 @@
     </div>
   </div>
 
+  <!-- =============================================
+       DIALOG ORE VIAGGIO
+  ============================================== -->
+  <div id="cvlsRepViaggioDialog" class="cvls-rep-dialog" role="dialog" aria-modal="true" aria-labelledby="cvlsRepViaggioTitle">
+    <div class="cvls-rep-dialog-card">
+      <div id="cvlsRepViaggioTitle" class="cvls-rep-dialog-title">Ore viaggio</div>
+      <input type="hidden" id="cvlsRepViaggioData" />
+      <div class="cvls-rep-dialog-field">
+        <label class="cvls-rep-dialog-label">Durata</label>
+        <div class="cvls-duration-input-group">
+          <input type="number" id="cvlsRepViaggioOre" class="cvls-duration-input"
+            min="0" max="23" placeholder="0" aria-label="Ore viaggio" />
+          <span class="cvls-duration-sep">h</span>
+          <input type="number" id="cvlsRepViaggioMin" class="cvls-duration-input"
+            min="0" max="59" placeholder="00" aria-label="Minuti viaggio" />
+          <span class="cvls-duration-sep">m</span>
+        </div>
+      </div>
+      <div class="cvls-rep-dialog-actions">
+        <button id="cvlsRepViaggioAnnullaBtn" class="secondary-btn">Annulla</button>
+        <button id="cvlsRepViaggioCancellaBtn" class="secondary-btn" style="color: #ef4444; border-color: #fca5a5;">Elimina</button>
+        <button id="cvlsRepViaggioSalvaBtn" class="primary-btn">Salva</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       DIALOG PERIODO REPERIBILITÀ
+  ============================================== -->
+  <div id="cvlsRepPeriodoDialog" class="cvls-rep-dialog" role="dialog" aria-modal="true" aria-labelledby="cvlsRepPeriodoTitle">
+    <div class="cvls-rep-dialog-card">
+      <div id="cvlsRepPeriodoTitle" class="cvls-rep-dialog-title">Periodo reperibilità</div>
+      <input type="hidden" id="cvlsRepPeriodoId" />
+      <div class="cvls-rep-dialog-input-row">
+        <div class="cvls-rep-dialog-field">
+          <label class="cvls-rep-dialog-label" for="cvlsRepPeriodoInizio">Data inizio</label>
+          <input type="date" id="cvlsRepPeriodoInizio" class="cvls-rep-dialog-input" />
+        </div>
+        <div class="cvls-rep-dialog-field">
+          <label class="cvls-rep-dialog-label" for="cvlsRepPeriodoFine">Data fine</label>
+          <input type="date" id="cvlsRepPeriodoFine" class="cvls-rep-dialog-input" />
+        </div>
+      </div>
+      <div class="cvls-rep-dialog-actions">
+        <button id="cvlsRepPeriodoAnnullaBtn" class="secondary-btn">Annulla</button>
+        <button id="cvlsRepPeriodoSalvaBtn" class="primary-btn">Salva</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       DIALOG INTERVENTO REPERIBILITÀ
+  ============================================== -->
+  <div id="cvlsRepInterventoDialog" class="cvls-rep-dialog" role="dialog" aria-modal="true" aria-labelledby="cvlsRepInterventoTitle">
+    <div class="cvls-rep-dialog-card">
+      <div id="cvlsRepInterventoTitle" class="cvls-rep-dialog-title">Intervento reperibilità</div>
+      <input type="hidden" id="cvlsRepInterventoId" />
+      <div class="cvls-rep-dialog-field">
+        <label class="cvls-rep-dialog-label" for="cvlsRepInterventoData">Data intervento</label>
+        <input type="date" id="cvlsRepInterventoData" class="cvls-rep-dialog-input" />
+      </div>
+      <div class="cvls-rep-dialog-input-row">
+        <div class="cvls-rep-dialog-field">
+          <label class="cvls-rep-dialog-label" for="cvlsRepInterventoOraChiamata">Ora chiamata</label>
+          <input type="time" id="cvlsRepInterventoOraChiamata" class="cvls-rep-dialog-input" />
+        </div>
+        <div class="cvls-rep-dialog-field">
+          <label class="cvls-rep-dialog-label" for="cvlsRepInterventoOraPartenza">Ora partenza</label>
+          <input type="time" id="cvlsRepInterventoOraPartenza" class="cvls-rep-dialog-input" />
+        </div>
+      </div>
+      <div class="cvls-rep-dialog-field">
+        <label class="cvls-rep-dialog-label">Durata intervento</label>
+        <div class="cvls-duration-input-group">
+          <input type="number" id="cvlsRepInterventoDurOre" class="cvls-duration-input"
+            min="0" max="23" placeholder="0" aria-label="Ore durata intervento" />
+          <span class="cvls-duration-sep">h</span>
+          <input type="number" id="cvlsRepInterventoDurMin" class="cvls-duration-input"
+            min="0" max="59" placeholder="00" aria-label="Minuti durata intervento" />
+          <span class="cvls-duration-sep">m</span>
+        </div>
+      </div>
+      <div class="cvls-rep-dialog-field">
+        <label class="cvls-rep-dialog-label" for="cvlsRepInterventoPresidio">Presidio</label>
+        <div class="cvls-rep-field-wrapper">
+          <input type="text" id="cvlsRepInterventoPresidio" class="cvls-rep-dialog-input"
+            placeholder="Cerca presidio..." autocomplete="off" />
+          <div id="cvlsRepInterventoPresidioSugg" class="cvls-rep-suggestions" style="display:none;"></div>
+        </div>
+      </div>
+      <div class="cvls-rep-dialog-field">
+        <label class="cvls-rep-dialog-label" for="cvlsRepInterventoUbicazione">Ubicazione</label>
+        <div class="cvls-rep-field-wrapper">
+          <input type="text" id="cvlsRepInterventoUbicazione" class="cvls-rep-dialog-input"
+            placeholder="Cerca ubicazione..." autocomplete="off" />
+          <div id="cvlsRepInterventoUbicazioneSugg" class="cvls-rep-suggestions" style="display:none;"></div>
+        </div>
+      </div>
+      <div class="cvls-rep-dialog-field">
+        <label class="cvls-rep-dialog-label" for="cvlsRepInterventoNumeroRit">Numero RIT</label>
+        <input type="text" id="cvlsRepInterventoNumeroRit" class="cvls-rep-dialog-input"
+          placeholder="es. RIT-2024-0001" />
+      </div>
+      <div class="cvls-rep-dialog-actions">
+        <button id="cvlsRepInterventoAnnullaBtn" class="secondary-btn">Annulla</button>
+        <button id="cvlsRepInterventoSalvaBtn" class="primary-btn">Salva</button>
+      </div>
+    </div>
+  </div>
+
   <script src="supabase-js.js"></script>
   <script src="cvls-supabase.js"></script>
-  <script src="cvls-api.js?v=25"></script>
+  <script src="cvls-api.js?v=26"></script>
   <script src="cvls-attachments.js"></script>
   <script src="cvls-geobollatura.js?v=25"></script>
   <script src="pages/nota-spese/nota-spese.js?v=3"></script>
-  <script src="app.js?v=26"></script>
+  <script src="cvls-reperibilita.js?v=1"></script>
+  <script src="app.js?v=27"></script>
 </body>
 
 </html>

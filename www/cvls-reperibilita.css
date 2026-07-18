@@ -1,0 +1,256 @@
+/* =========================================================
+   CVLS REPERIBILITÀ - Stili specifici
+   File: cvls-reperibilita.css
+   Compatibile con style.css esistente.
+   ========================================================= */
+
+/* -------------------------------------------------------
+   Box Reperibilità nella pagina Bollatura
+   Usa la stessa classe admin-box di style.css
+   ------------------------------------------------------- */
+.cvls-rep-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.cvls-rep-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #374151;
+  gap: 8px;
+}
+
+.cvls-rep-item-text {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.cvls-rep-item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cvls-rep-btn-icon {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #6b7280;
+  line-height: 1;
+}
+
+.cvls-rep-btn-icon:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.cvls-rep-btn-icon.delete {
+  color: #ef4444;
+  border-color: #fca5a5;
+}
+
+.cvls-rep-btn-icon.delete:hover {
+  background: #fef2f2;
+}
+
+.cvls-rep-empty {
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: center;
+  padding: 8px 0;
+}
+
+/* -------------------------------------------------------
+   Dialog overlay (riusa il pattern cvls-dialog-overlay
+   già definito in style.css, ma aggiunge stili specifici)
+   ------------------------------------------------------- */
+.cvls-rep-dialog {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.45);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.cvls-rep-dialog.active {
+  display: flex;
+}
+
+.cvls-rep-dialog-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 22px 20px 18px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+}
+
+.cvls-rep-dialog-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 16px 0;
+}
+
+.cvls-rep-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.cvls-rep-dialog-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cvls-rep-dialog-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.cvls-rep-dialog-input:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.cvls-rep-dialog-input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cvls-rep-dialog-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cvls-rep-dialog-actions .primary-btn,
+.cvls-rep-dialog-actions .secondary-btn {
+  flex: 1;
+  margin: 0 !important;
+  padding: 12px 10px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  height: 48px;
+  cursor: pointer;
+}
+
+/* -------------------------------------------------------
+   Input durata ore+minuti per il campo ore viaggio
+   ------------------------------------------------------- */
+.cvls-duration-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cvls-duration-input {
+  width: 60px;
+  padding: 10px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.cvls-duration-input:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.cvls-duration-sep {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------
+   Inline ore viaggio nel foglio ore (click su cella)
+   ------------------------------------------------------- */
+.cvls-viaggio-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: #0284c7;
+  padding: 0 2px;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
+.cvls-viaggio-edit-btn:hover {
+  opacity: 1;
+}
+
+/* -------------------------------------------------------
+   Autocomplete presidio/ubicazione nei dialog
+   ------------------------------------------------------- */
+.cvls-rep-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  z-index: 1300;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  margin-top: 2px;
+}
+
+.cvls-rep-suggestion-item {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #111827;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.cvls-rep-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.cvls-rep-suggestion-item:hover {
+  background: #f0f9ff;
+  color: #0284c7;
+}
+
+.cvls-rep-field-wrapper {
+  position: relative;
+}

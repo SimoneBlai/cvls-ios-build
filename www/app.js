@@ -60,6 +60,12 @@ const tipiDispositivoTecnico = [
 
 let dati = createEmptyData();
 
+window.CvlsAppState = {
+  getData: function () {
+    return dati;
+  }
+};
+
 let selezione = {
   citta: null,
   presidio: null,
@@ -188,6 +194,11 @@ function bindEvents() {
   bind("closeRegPresListBtn", "click", closeRegPresListModal);
   bind("regPresVisualizzaFoglioOreBtn", "click", visualizzaRegistroPresenzeFoglioOre);
   bind("regPresGeneraFoglioOreBtn", "click", generaRegistroPresenzeFoglioOrePdf);
+
+  // Binding eventi reperibilità (cvls-reperibilita.js)
+  if (window.CvlsReperibilita && typeof window.CvlsReperibilita.bindReperibilitaEvents === "function") {
+    window.CvlsReperibilita.bindReperibilitaEvents();
+  }
 
   bind("closeAdminBollatureBtn", "click", closeAdminBollature);
   bind("adminAddCantiereBtn", "click", adminAddCantiere);
@@ -2184,6 +2195,17 @@ function applyRemoteData(remoteData) {
     );
   }
 
+  // Nuovi dataset: oreViaggio, periodi e interventi reperibilità
+  if (Array.isArray(remoteData.oreViaggio)) {
+    dati.oreViaggio = remoteData.oreViaggio;
+  }
+  if (Array.isArray(remoteData.reperibilita_periodi)) {
+    dati.reperibilita_periodi = remoteData.reperibilita_periodi;
+  }
+  if (Array.isArray(remoteData.reperibilita_interventi)) {
+    dati.reperibilita_interventi = remoteData.reperibilita_interventi;
+  }
+
   ensureDataShape();
 }
 
@@ -2620,6 +2642,67 @@ function reapplyPendingArchiveChanges(pending) {
       }
       return;
     }
+
+    // --- Ore viaggio ---
+    if (change.type === "SAVE_ORE_VIAGGIO") {
+      if (!Array.isArray(dati.oreViaggio)) dati.oreViaggio = [];
+      var dvDateKey = payload.data;
+      var dvIdx = dati.oreViaggio.findIndex(function (r) { return r.data === dvDateKey; });
+      var dvMinuti = Number(payload.ore_viaggio_minuti) || 0;
+      if (dvIdx >= 0) {
+        dati.oreViaggio[dvIdx].ore_viaggio_minuti = dvMinuti;
+      } else {
+        dati.oreViaggio.push({ data: dvDateKey, ore_viaggio_minuti: dvMinuti });
+      }
+      return;
+    }
+
+    if (change.type === "DELETE_ORE_VIAGGIO") {
+      if (Array.isArray(dati.oreViaggio)) {
+        dati.oreViaggio = dati.oreViaggio.filter(function (r) { return r.data !== payload.data; });
+      }
+      return;
+    }
+
+    // --- Periodi reperibilità ---
+    if (change.type === "SAVE_REP_PERIODO") {
+      if (!Array.isArray(dati.reperibilita_periodi)) dati.reperibilita_periodi = [];
+      var rpId = payload.id;
+      var rpIdx = dati.reperibilita_periodi.findIndex(function (p) { return p.id === rpId; });
+      if (rpIdx >= 0) {
+        dati.reperibilita_periodi[rpIdx] = Object.assign({}, dati.reperibilita_periodi[rpIdx], payload);
+      } else {
+        dati.reperibilita_periodi.push(Object.assign({}, payload));
+      }
+      return;
+    }
+
+    if (change.type === "DELETE_REP_PERIODO") {
+      if (Array.isArray(dati.reperibilita_periodi)) {
+        dati.reperibilita_periodi = dati.reperibilita_periodi.filter(function (p) { return p.id !== payload.id; });
+      }
+      return;
+    }
+
+    // --- Interventi reperibilità ---
+    if (change.type === "SAVE_REP_INTERVENTO") {
+      if (!Array.isArray(dati.reperibilita_interventi)) dati.reperibilita_interventi = [];
+      var riId = payload.id;
+      var riIdx = dati.reperibilita_interventi.findIndex(function (r) { return r.id === riId; });
+      if (riIdx >= 0) {
+        dati.reperibilita_interventi[riIdx] = Object.assign({}, dati.reperibilita_interventi[riIdx], payload);
+      } else {
+        dati.reperibilita_interventi.push(Object.assign({}, payload));
+      }
+      return;
+    }
+
+    if (change.type === "DELETE_REP_INTERVENTO") {
+      if (Array.isArray(dati.reperibilita_interventi)) {
+        dati.reperibilita_interventi = dati.reperibilita_interventi.filter(function (r) { return r.id !== payload.id; });
+      }
+      return;
+    }
   });
 
   ensureDataShape();
@@ -2784,7 +2867,10 @@ function createEmptyData() {
     richiesteEliminazioneAllegati: [],
     programmazioni: [],
     cantieri: [],
-    bollature: []
+    bollature: [],
+    oreViaggio: [],
+    reperibilita_periodi: [],
+    reperibilita_interventi: []
   };
 }
 
@@ -2821,6 +2907,9 @@ function ensureDataShape() {
     Array.isArray(dati.richiesteEliminazioneAllegati)
       ? dati.richiesteEliminazioneAllegati
       : [];
+  dati.oreViaggio = Array.isArray(dati.oreViaggio) ? dati.oreViaggio : [];
+  dati.reperibilita_periodi = Array.isArray(dati.reperibilita_periodi) ? dati.reperibilita_periodi : [];
+  dati.reperibilita_interventi = Array.isArray(dati.reperibilita_interventi) ? dati.reperibilita_interventi : [];
 }
 
 function loadLocalData() {
@@ -6862,6 +6951,14 @@ function openRegPresListModal() {
     preview.classList.add("hidden");
   }
 
+  if (window.CvlsReperibilita && typeof window.CvlsReperibilita.renderRegistroModificabili === "function") {
+    const meseSelect = document.getElementById("regPresFoglioOreMese");
+    const annoSelect = document.getElementById("regPresFoglioOreAnno");
+    if (meseSelect && annoSelect) {
+      window.CvlsReperibilita.renderRegistroModificabili(Number(annoSelect.value), Number(meseSelect.value) - 1);
+    }
+  }
+
   const modal = document.getElementById("regPresListModal");
   if (modal) modal.classList.remove("hidden");
 }
@@ -7217,6 +7314,10 @@ function cvlsInitRegistroPresenzePeriodSelector() {
       preview.innerHTML = "";
       preview.classList.add("hidden");
     }
+
+    if (window.CvlsReperibilita && typeof window.CvlsReperibilita.renderRegistroModificabili === "function") {
+      window.CvlsReperibilita.renderRegistroModificabili(Number(annoSelect.value), Number(meseSelect.value) - 1);
+    }
   };
 
   meseSelect.onchange = resetPreview;
@@ -7284,6 +7385,11 @@ function cvlsBuildFoglioOreMensileData() {
   let totaleReperibilitaMinuti = 0;
   let totalePranzoMinuti = 0;
   let settimaneReperibilita = 0;
+
+  // Dati reperibilità e ore viaggio per il mese
+  const repData = (window.CvlsReperibilita && typeof window.CvlsReperibilita.getDataForMonth === "function")
+    ? window.CvlsReperibilita.getDataForMonth(year, monthIndex)
+    : null;
 
   for (let day = 1; day <= daysInMonth; day++) {
     const currentDate = new Date(year, monthIndex, day);
@@ -7380,15 +7486,24 @@ function cvlsBuildFoglioOreMensileData() {
       orePermesso: cvlsMinutesToHourText(permessoMinuti, true),
       oreStraordinarioMinuti: straordinarioMinuti,
       oreStraordinario: cvlsMinutesToHourText(straordinarioMinuti, true),
-      oreViaggioMinuti: 0,
-      oreViaggio: "",
-      reperibilita: "",
-      oreReperibilitaMinuti: 0,
-      oreReperibilita: "",
+      oreViaggioMinuti: repData ? (repData.oreViaggioPerGiorno[dayKey] || 0) : 0,
+      oreViaggio: repData ? cvlsMinutesToHourText(repData.oreViaggioPerGiorno[dayKey] || 0, true) : "",
+      reperibilita: repData && repData.giorniReperibilita && repData.giorniReperibilita.has(dayKey) ? "R" : "",
+      oreReperibilitaMinuti: repData ? (repData.oreReperibilitaPerGiorno[dayKey] || 0) : 0,
+      oreReperibilita: repData ? cvlsMinutesToHourText(repData.oreReperibilitaPerGiorno[dayKey] || 0, true) : "",
       pranzoMinuti: pranzoMinuti,
       pranzo: pranzoLabels,
       note: note.join("; ")
     });
+  }
+
+  // Totali viaggio e reperibilità calcolati dai dati reali
+  if (repData) {
+    rows.forEach(function (row) {
+      totaleViaggioMinuti += row.oreViaggioMinuti;
+      totaleReperibilitaMinuti += row.oreReperibilitaMinuti;
+    });
+    settimaneReperibilita = repData.settimaneConteggiate;
   }
 
   return {
@@ -7425,6 +7540,13 @@ function renderRegistroPresenzeFoglioOrePreview() {
   const data = cvlsBuildFoglioOreMensileData();
 
   const bodyRows = data.rows.map(function (row) {
+    var viaggioCell = escapeHtml(row.oreViaggio);
+    if (window.CvlsReperibilita && typeof window.CvlsReperibilita.openViaggioDialog === "function") {
+      viaggioCell = (row.oreViaggio ? escapeHtml(row.oreViaggio) + " " : "") +
+        "<button class=\"cvls-viaggio-edit-btn\" onclick=\"CvlsReperibilita.openViaggioDialog('" +
+        escapeHtml(row.dataISO) + "', " + (row.oreViaggioMinuti || 0) + ")\" aria-label=\"Modifica ore viaggio " + escapeHtml(row.giorno) + "\">✏️</button>";
+    }
+
     return "<tr>" +
       "<td>" + escapeHtml(row.giorno) + "</td>" +
       "<td>" + escapeHtml(row.luogo) + "</td>" +
@@ -7432,7 +7554,7 @@ function renderRegistroPresenzeFoglioOrePreview() {
       "<td>" + escapeHtml(row.uscita) + "</td>" +
       "<td>" + escapeHtml(row.totaleGiorno) + "</td>" +
       "<td>" + escapeHtml(row.orePermesso) + "</td>" +
-      "<td>" + escapeHtml(row.oreViaggio) + "</td>" +
+      "<td>" + viaggioCell + "</td>" +
       "<td>" + escapeHtml(row.oreStraordinario) + "</td>" +
       "<td>" + escapeHtml(row.reperibilita) + "</td>" +
       "<td>" + escapeHtml(row.oreReperibilita) + "</td>" +
@@ -7914,6 +8036,9 @@ function cvlsShowPage(pageId, title) {
     }
     initRegistroPresenzeLuogoSearch();
     initRegistroPresenzePranzo();
+    if (window.CvlsReperibilita && typeof window.CvlsReperibilita.renderBoxReperibilita === "function") {
+      window.CvlsReperibilita.renderBoxReperibilita();
+    }
   }
 
   if (pageId === "pageNotaSpese" && window.CvlsNotaSpese && typeof window.CvlsNotaSpese.init === "function") {
