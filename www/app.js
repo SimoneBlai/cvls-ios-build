@@ -192,7 +192,7 @@ function bindEvents() {
   });
   bind("regPresVisualizzaBtn", "click", openRegPresListModal);
   bind("closeRegPresListBtn", "click", closeRegPresListModal);
-  bind("regPresVisualizzaFoglioOreBtn", "click", visualizzaRegistroPresenzeFoglioOre);
+
   bind("regPresGeneraFoglioOreBtn", "click", generaRegistroPresenzeFoglioOrePdf);
 
   // Binding eventi reperibilità (cvls-reperibilita.js)
@@ -6942,14 +6942,8 @@ function initRegistroPresenzeLuogoSearch() {
   renderLuogoChips();
 }
 function openRegPresListModal() {
-  renderRegistroPresenzeList();
   cvlsInitRegistroPresenzePeriodSelector();
-
-  const preview = document.getElementById("regPresFoglioOrePreview");
-  if (preview) {
-    preview.innerHTML = "";
-    preview.classList.add("hidden");
-  }
+  renderRegistroPresenzeList();
 
   if (window.CvlsReperibilita && typeof window.CvlsReperibilita.renderRegistroModificabili === "function") {
     const meseSelect = document.getElementById("regPresFoglioOreMese");
@@ -6981,7 +6975,16 @@ function renderRegistroPresenzeList() {
 
   container.innerHTML = "";
 
-  const list = Array.isArray(dati.bollature) ? dati.bollature.slice() : [];
+  const allBollature = Array.isArray(dati.bollature) ? dati.bollature.slice() : [];
+  const selectedPeriod = cvlsGetRegistroPresenzeSelectedPeriod(allBollature);
+  const selYear = selectedPeriod.year;
+  const selMonth = selectedPeriod.monthIndex;
+
+  const list = allBollature.filter(function (b) {
+    const d = cvlsRegistroDateFromValue(b.orario);
+    if (!d) return false;
+    return d.getFullYear() === selYear && d.getMonth() === selMonth;
+  });
 
   list.sort(function (a, b) {
     const timeA = new Date(a.orario || 0).getTime();
@@ -6990,7 +6993,7 @@ function renderRegistroPresenzeList() {
   });
 
   if (list.length === 0) {
-    container.innerHTML = '<div style="text-align: center; padding: 20px; color: #6b7280; font-size: 14px;">Nessuna bollatura presente</div>';
+    container.innerHTML = '<div style="text-align: center; padding: 20px; color: #6b7280; font-size: 14px;">Nessuna bollatura nel periodo selezionato</div>';
     return;
   }
 
@@ -7013,61 +7016,54 @@ function renderRegistroPresenzeList() {
     const statusSyncText = isPending ? "In attesa di sincronizzazione" : "Sincronizzato";
     const statusSyncColor = isPending ? "#d97706" : "#059669";
 
+    const isIngresso = (b.tipo_bollatura || "").toLowerCase() === "ingresso";
+    const isUscita = (b.tipo_bollatura || "").toLowerCase() === "uscita";
+    
     let detailsHtml = "";
-    const luogoLabels = cvlsGetBollaturaLuogoLabels(b);
+    const tecnicoHtml = escapeHtml(b.tecnico || "-");
+    const sedeHtml = escapeHtml(b.nome_sede || "-");
 
-    if (luogoLabels.length > 0) {
-      detailsHtml += '<div>Luogo: <strong>' + escapeHtml(luogoLabels.join(" / ")) + '</strong></div>';
+    if (isIngresso) {
+      detailsHtml += '<div>Tecnico: <strong>' + tecnicoHtml + '</strong></div>';
+      detailsHtml += '<div>Sede: <strong>' + sedeHtml + '</strong></div>';
+    } else if (isUscita) {
+      detailsHtml += '<div>Tecnico: <strong>' + tecnicoHtml + '</strong></div>';
+      
+      const luogoLabels = cvlsGetBollaturaLuogoLabels(b);
+      let presidioHtml = "-";
+      if (luogoLabels.length > 0) {
+        presidioHtml = escapeHtml(luogoLabels.join(" / "));
+      } else if (b.citta_nome || b.cantiere_nome) {
+        const parts = [];
+        if (b.citta_nome) parts.push(b.citta_nome);
+        if (b.cantiere_nome) parts.push(b.cantiere_nome);
+        if (parts.length > 0) {
+          presidioHtml = escapeHtml(parts.join(" / "));
+        }
+      }
+      detailsHtml += '<div>Presidio: <strong>' + presidioHtml + '</strong></div>';
+      
+      const pausaPranzo = String(
+        b.pausa_pranzo ||
+        (typeof getRegistroPresenzePranzoById === "function" ? getRegistroPresenzePranzoById(b.id) : "") ||
+        "-"
+      ).trim();
+      detailsHtml += '<div>Pranzo: <strong>' + escapeHtml(pausaPranzo) + '</strong></div>';
+      
+      let totaleOreHtml = "-";
+      const val = b.totale_calcolato_minuti;
+      if (b.totale_calcolato_testo) {
+        totaleOreHtml = escapeHtml(b.totale_calcolato_testo);
+      } else if (val !== null && val !== undefined && val !== "" && Number.isFinite(Number(val))) {
+        totaleOreHtml = escapeHtml(formatRegistroPresenzeListMinutes(val));
+      }
+      detailsHtml += '<div>Totale ore: <strong>' + totaleOreHtml + '</strong></div>';
+      detailsHtml += '<div>Sede: <strong>' + sedeHtml + '</strong></div>';
+      
+      detailsHtml += '<div style="margin-top: 10px;"><button type="button" class="secondary-btn btn-viaggio" style="margin: 0; padding: 8px; width: 100%; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;">Gestisci ore viaggio</button></div>';
     } else {
-      if (b.citta_nome) {
-        detailsHtml += '<div>Presidio: <strong>' + escapeHtml(b.citta_nome) + '</strong></div>';
-      }
-      if (b.cantiere_nome) {
-        detailsHtml += '<div>Ubicazione: <strong>' + escapeHtml(b.cantiere_nome) + '</strong></div>';
-      }
-    }
-
-    const pausaPranzo = String(
-      b.pausa_pranzo ||
-      (typeof getRegistroPresenzePranzoById === "function"
-        ? getRegistroPresenzePranzoById(b.id)
-        : "") ||
-      ""
-    ).trim();
-
-    if (pausaPranzo) {
-      detailsHtml += '<div>Pranzo: <strong>' + pausaPranzo + '</strong></div>';
-    }
-
-    if (b.totale_lavorato_testo || Number.isFinite(Number(b.totale_lavorato_minuti))) {
-      const totaleReale = b.totale_lavorato_testo || formatRegistroPresenzeListMinutes(b.totale_lavorato_minuti);
-      detailsHtml += '<div>Totale reale: <strong>' + totaleReale + '</strong></div>';
-    }
-
-    if (b.totale_calcolato_testo || Number.isFinite(Number(b.totale_calcolato_minuti))) {
-      const totaleCalcolato = b.totale_calcolato_testo || formatRegistroPresenzeListMinutes(b.totale_calcolato_minuti);
-      detailsHtml += '<div>Totale calcolato: <strong>' + escapeHtml(totaleCalcolato) + '</strong></div>';
-    }
-
-    if (
-      b.ore_permesso_testo ||
-      (b.ore_permesso_minuti !== null && b.ore_permesso_minuti !== undefined &&
-        Number.isFinite(Number(b.ore_permesso_minuti)) && Number(b.ore_permesso_minuti) > 0)
-    ) {
-      const orePermesso = b.ore_permesso_testo || formatRegistroPresenzeListMinutes(b.ore_permesso_minuti);
-      detailsHtml += '<div>Ore permesso: <strong>' + escapeHtml(orePermesso) + '</strong></div>';
-    }
-
-    if (b.regola_calcolo) {
-      detailsHtml += '<div>Regola calcolo: <strong>' + b.regola_calcolo + '</strong></div>';
-    }
-
-    if (b.nome_sede) {
-      detailsHtml += '<div>Sede Geofence: <strong>' + b.nome_sede + '</strong></div>';
-    }
-    if (b.stato_gps) {
-      const gpsLabel = b.stato_gps === "in_zona" ? "In zona" : "Fuori zona (sbloccato)";
-      detailsHtml += '<div>Stato GPS: <strong>' + gpsLabel + '</strong></div>';
+      detailsHtml += '<div>Tecnico: <strong>' + tecnicoHtml + '</strong></div>';
+      detailsHtml += '<div>Sede: <strong>' + sedeHtml + '</strong></div>';
     }
 
     card.innerHTML = 
@@ -7076,14 +7072,38 @@ function renderRegistroPresenzeList() {
         '<span style="color: #374151;">' + formattedTime + '</span>' +
       '</div>' +
       '<div style="font-size: 13px; color: #4b5563; line-height: 1.5; text-align: left; display: flex; flex-direction: column; gap: 4px;">' +
-        '<div>Tecnico: <strong>' + (b.tecnico || "Tecnico") + '</strong></div>' +
         detailsHtml +
-        '<div style="margin-top: 4px; font-size: 11px; font-weight: bold; color: ' + statusSyncColor + ';">' +
-          statusSyncText +
-        '</div>' +
       '</div>';
 
     container.appendChild(card);
+
+    if (isUscita) {
+      const btn = card.querySelector(".btn-viaggio");
+      if (btn) {
+        btn.addEventListener("click", function () {
+          const dateObj = cvlsRegistroDateFromValue(b.orario);
+          if (!dateObj) return;
+          const dayKey = cvlsRegistroDayKey(dateObj);
+          
+          let minutiCorrenti = 0;
+          if (Array.isArray(dati.oreViaggio)) {
+            const currentObj = dati.oreViaggio.find(function (ov) {
+              return ov.data === dayKey;
+            });
+            if (currentObj) {
+              const val = currentObj.ore_viaggio_minuti;
+              if (val !== null && val !== undefined && val !== "" && Number.isFinite(Number(val))) {
+                minutiCorrenti = Number(val);
+              }
+            }
+          }
+          
+          if (window.CvlsReperibilita && typeof window.CvlsReperibilita.openViaggioDialog === "function") {
+             window.CvlsReperibilita.openViaggioDialog(dayKey, minutiCorrenti);
+          }
+        });
+      }
+    }
   });
 }
 
@@ -7307,21 +7327,16 @@ function cvlsInitRegistroPresenzePeriodSelector() {
   meseSelect.value = String(selectedMonth);
   annoSelect.value = String(selectedYear);
 
-  const resetPreview = function () {
-    const preview = document.getElementById("regPresFoglioOrePreview");
-
-    if (preview) {
-      preview.innerHTML = "";
-      preview.classList.add("hidden");
-    }
+  const onPeriodChange = function () {
+    renderRegistroPresenzeList();
 
     if (window.CvlsReperibilita && typeof window.CvlsReperibilita.renderRegistroModificabili === "function") {
       window.CvlsReperibilita.renderRegistroModificabili(Number(annoSelect.value), Number(meseSelect.value) - 1);
     }
   };
 
-  meseSelect.onchange = resetPreview;
-  annoSelect.onchange = resetPreview;
+  meseSelect.onchange = onPeriodChange;
+  annoSelect.onchange = onPeriodChange;
 }
 
 function cvlsGetRegistroPresenzeSelectedPeriod(allBollature) {

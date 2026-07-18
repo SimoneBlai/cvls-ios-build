@@ -796,7 +796,7 @@
         <div id="regPresDatiReperibilita" style="margin-top: 18px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #f9fafb; text-align: left;">
           <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 10px;">Dati modificabili (Reperibilità)</div>
           <div style="font-size: 12px; color: #4b5563; margin-bottom: 15px;">
-            Gestisci periodi e interventi di reperibilità. Le ore viaggio si modificano dalla riga giornaliera.
+            Gestisci periodi e interventi di reperibilità. Le ore viaggio si modificano dal blocco Uscita della giornata.
           </div>
           <div style="display: flex; gap: 10px; margin-bottom: 15px;">
             <button class="primary-btn" style="flex: 1; padding: 8px; font-size: 12px; margin: 0;" onclick="CvlsReperibilita.openPeriodoDialog(null)">+ Periodo</button>
@@ -821,16 +821,9 @@
         </div>
 
         <div id="regPresFoglioOreActions" style="margin-top: 12px; display: grid; grid-template-columns: 1fr; gap: 10px;">
-          <button id="regPresVisualizzaFoglioOreBtn" class="primary-btn" type="button" style="width: 100%; padding: 12px; border-radius: 8px; cursor: pointer;">
-            Visualizza foglio ore
-          </button>
-          <button id="regPresGeneraFoglioOreBtn" class="secondary-btn" type="button" style="width: 100%; padding: 12px; border-radius: 8px; cursor: pointer; margin-top: 0;">
+          <button id="regPresGeneraFoglioOreBtn" class="primary-btn" type="button" style="width: 100%; padding: 12px; border-radius: 8px; cursor: pointer; margin-top: 0;">
             Genera foglio ore
           </button>
-        </div>
-
-        <div id="regPresFoglioOrePreview" class="hidden" style="margin-top: 18px; text-align: left;">
-          <!-- Foglio ore rendered here -->
         </div>
       </div>
     </div>
@@ -1111,7 +1104,7 @@
   <script src="cvls-geobollatura.js?v=25"></script>
   <script src="pages/nota-spese/nota-spese.js?v=3"></script>
   <script src="cvls-reperibilita.js?v=1"></script>
-  <script src="app.js?v=27"></script>
+  <script src="app.js?v=29"></script>
 </body>
 
 </html>
