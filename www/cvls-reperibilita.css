@@ -17,15 +17,15 @@
 
 .cvls-rep-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   padding: 10px 12px;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   font-size: 13px;
   color: #374151;
-  gap: 8px;
+  gap: 0;
 }
 
 .cvls-rep-item-text {
@@ -37,7 +37,9 @@
 .cvls-rep-item-actions {
   display: flex;
   gap: 6px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  justify-content: flex-end;
 }
 
 .cvls-rep-btn-icon {
@@ -126,6 +128,7 @@
 
 .cvls-rep-dialog-input {
   width: 100%;
+  max-width: 100%;
   padding: 10px 12px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
@@ -146,6 +149,18 @@
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-bottom: 14px;
+}
+
+/* Impedisce ai figli della grid di superare la larghezza disponibile */
+.cvls-rep-dialog-input-row .cvls-rep-dialog-field {
+  min-width: 0;
+}
+
+/* Su smartphone i gruppi affiancati diventano verticali */
+@media (max-width: 520px) {
+  .cvls-rep-dialog-input-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .cvls-rep-dialog-actions {
