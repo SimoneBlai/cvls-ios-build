@@ -71,10 +71,41 @@
     return null;
   }
 
+  function calcolaGiornata(options) {
+    if (!options) return null;
+    const ingresso = arrotondaIngresso(options.ingresso);
+    const uscita = arrotondaUscita(options.uscita);
+
+    if (!ingresso || !uscita) return null;
+
+    const pausa = Math.max(0, parseInt(options.pausaMinuti) || 0);
+    const viaggio = Math.max(0, parseInt(options.oreViaggioMinuti) || 0);
+
+    const diffMs = uscita.getTime() - ingresso.getTime();
+    const lordo = Math.max(0, Math.round(diffMs / 60000));
+
+    const netto = Math.max(0, lordo - pausa);
+    const esubero = Math.max(0, netto - 480);
+    const viaggioValido = Math.min(viaggio, esubero);
+    const straordinario = Math.max(0, esubero - viaggioValido);
+
+    return {
+      ingressoRiconosciuto: ingresso,
+      uscitaRiconosciuta: uscita,
+      totaleLordoMinuti: lordo,
+      pausaMinuti: pausa,
+      totaleNettoMinuti: netto,
+      esuberoMinuti: esubero,
+      oreViaggioMinuti: viaggioValido,
+      straordinarioMinuti: straordinario
+    };
+  }
+
   window.CvlsRegistroPresenzeCalcoli = {
     parseDate: parseDate,
     arrotondaIngresso: arrotondaIngresso,
     arrotondaUscita: arrotondaUscita,
-    getOrarioRiconosciuto: getOrarioRiconosciuto
+    getOrarioRiconosciuto: getOrarioRiconosciuto,
+    calcolaGiornata: calcolaGiornata
   };
 })();

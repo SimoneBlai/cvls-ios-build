@@ -464,11 +464,14 @@ window.CvlsGeobollatura = (function () {
     }
 
     function calculateRegistroPresenzeTotali(activeCheckin, checkoutTime, pausaPranzo) {
-        const ingressoMs = new Date(activeCheckin && activeCheckin.time || "").getTime();
-        const uscitaMs = new Date(checkoutTime || "").getTime();
+        const ingressoDate = activeCheckin && activeCheckin.time ? new Date(activeCheckin.time) : null;
+        const uscitaDate = checkoutTime ? new Date(checkoutTime) : null;
         const pausaMinuti = getPausaPranzoMinuti(pausaPranzo);
 
-        if (!Number.isFinite(ingressoMs) || !Number.isFinite(uscitaMs) || uscitaMs < ingressoMs || pausaMinuti === null) {
+        if (!ingressoDate || isNaN(ingressoDate.getTime()) ||
+            !uscitaDate || isNaN(uscitaDate.getTime()) ||
+            uscitaDate.getTime() < ingressoDate.getTime() ||
+            pausaMinuti === null) {
             return {
                 pausaPranzoMinuti: pausaMinuti,
                 durataLordaMinuti: null,
@@ -482,36 +485,56 @@ window.CvlsGeobollatura = (function () {
             };
         }
 
-        const durataLordaMinuti = Math.max(0, Math.round((uscitaMs - ingressoMs) / 60000));
-        const totaleLavoratoMinuti = Math.max(0, durataLordaMinuti - pausaMinuti);
+        let oreViaggioMin = 0;
+        try {
+            const raw = localStorage.getItem("cvls_local_data");
+            if (raw) {
+                const dati = JSON.parse(raw);
+                if (dati && Array.isArray(dati.oreViaggio)) {
+                    const pad = (n) => String(n).padStart(2, "0");
+                    const dateStr = ingressoDate.getFullYear() + "-" + pad(ingressoDate.getMonth() + 1) + "-" + pad(ingressoDate.getDate());
+                    const match = dati.oreViaggio.find(v => v.data === dateStr);
+                    if (match) oreViaggioMin = Number(match.ore_viaggio_minuti) || 0;
+                }
+            }
+        } catch(e) {}
 
-        const targetMinuti = 480;
-        const tolleranzaMinuti = 15;
-        const applicaTolleranza =
-            totaleLavoratoMinuti >= targetMinuti - tolleranzaMinuti &&
-            totaleLavoratoMinuti <= targetMinuti + tolleranzaMinuti;
+        const calcoli = window.CvlsRegistroPresenzeCalcoli.calcolaGiornata({
+            ingresso: ingressoDate,
+            uscita: uscitaDate,
+            pausaMinuti: pausaMinuti,
+            oreViaggioMinuti: oreViaggioMin
+        });
 
-        const totaleCalcolatoMinuti = applicaTolleranza
-            ? targetMinuti
-            : totaleLavoratoMinuti;
-        const orePermessoMinuti = totaleCalcolatoMinuti < targetMinuti
-            ? targetMinuti - totaleCalcolatoMinuti
-            : 0;
+        if (!calcoli) {
+            return {
+                pausaPranzoMinuti: pausaMinuti,
+                durataLordaMinuti: null,
+                totaleLavoratoMinuti: null,
+                totaleLavoratoTesto: null,
+                totaleCalcolatoMinuti: null,
+                totaleCalcolatoTesto: null,
+                orePermessoMinuti: null,
+                orePermessoTesto: null,
+                regolaCalcolo: null
+            };
+        }
+
+        const orePermessoMinuti = calcoli.totaleNettoMinuti < 480 ? 480 - calcoli.totaleNettoMinuti : 0;
 
         return {
-            pausaPranzoMinuti: pausaMinuti,
-            durataLordaMinuti: durataLordaMinuti,
-            totaleLavoratoMinuti: totaleLavoratoMinuti,
-            totaleLavoratoTesto: formatRegistroPresenzeMinuti(totaleLavoratoMinuti),
-            totaleCalcolatoMinuti: totaleCalcolatoMinuti,
-            totaleCalcolatoTesto: formatRegistroPresenzeMinuti(totaleCalcolatoMinuti),
+            pausaPranzoMinuti: calcoli.pausaMinuti,
+            durataLordaMinuti: calcoli.totaleLordoMinuti,
+            totaleLavoratoMinuti: calcoli.totaleNettoMinuti,
+            totaleLavoratoTesto: formatRegistroPresenzeMinuti(calcoli.totaleNettoMinuti),
+            totaleCalcolatoMinuti: calcoli.totaleNettoMinuti,
+            totaleCalcolatoTesto: formatRegistroPresenzeMinuti(calcoli.totaleNettoMinuti),
             orePermessoMinuti: orePermessoMinuti,
-            orePermessoTesto: orePermessoMinuti > 0
-                ? formatRegistroPresenzeMinuti(orePermessoMinuti)
-                : null,
-            regolaCalcolo: applicaTolleranza
-                ? "Tolleranza totale giornaliero 8h ±15m"
-                : null
+            orePermessoTesto: orePermessoMinuti > 0 ? formatRegistroPresenzeMinuti(orePermessoMinuti) : null,
+            esuberoMinuti: calcoli.esuberoMinuti,
+            oreViaggioMinuti: calcoli.oreViaggioMinuti,
+            straordinarioMinuti: calcoli.straordinarioMinuti,
+            regolaCalcolo: null
         };
     }
 

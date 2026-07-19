@@ -7433,43 +7433,46 @@ function cvlsBuildFoglioOreMensileData() {
       ", "
     );
 
-    const pranzoMinuti = uscite.reduce(function (totale, item) {
-      return totale + Math.max(0, Math.round(Number(item.raw && item.raw.pausa_pranzo_minuti) || 0));
-    }, 0);
+    const pranzoMinuti = lastUscita
+      ? Math.max(
+          0,
+          Math.round(
+            Number(lastUscita.raw && lastUscita.raw.pausa_pranzo_minuti) || 0
+          )
+        )
+      : 0;
 
-    const totaleCalcolatoMinuti = uscite.reduce(function (totale, item) {
-      const raw = item.raw || {};
-      const calcolato = Number(raw.totale_calcolato_minuti);
-      const reale = Number(raw.totale_lavorato_minuti);
+    let oreViaggioRaw = 0;
+    if (Array.isArray(dati.oreViaggio)) {
+      const match = dati.oreViaggio.find(function(v) { return v.data === dayKey; });
+      if (match) oreViaggioRaw = Number(match.ore_viaggio_minuti) || 0;
+    }
 
-      if (Number.isFinite(calcolato) && calcolato > 0) {
-        return totale + Math.round(calcolato);
-      }
+    let calcoli = null;
+    if (firstIngresso && lastUscita) {
+      calcoli = window.CvlsRegistroPresenzeCalcoli.calcolaGiornata({
+        ingresso: firstIngresso.raw.orario,
+        uscita: lastUscita.raw.orario,
+        pausaMinuti: pranzoMinuti,
+        oreViaggioMinuti: oreViaggioRaw
+      });
+    }
 
-      if (Number.isFinite(reale) && reale > 0) {
-        return totale + Math.round(reale);
-      }
+    let totaleCalcolatoMinuti = calcoli ? calcoli.totaleNettoMinuti : 0;
+    let straordinarioMinuti = calcoli ? calcoli.straordinarioMinuti : 0;
+    let viaggioValido = calcoli ? calcoli.oreViaggioMinuti : 0;
+    let ingressoStr = calcoli ? cvlsFormatRegistroTime(calcoli.ingressoRiconosciuto) : (firstIngresso ? cvlsFormatRegistroTime(firstIngresso.raw.orario) : "");
+    let uscitaStr = calcoli ? cvlsFormatRegistroTime(calcoli.uscitaRiconosciuta) : (lastUscita ? cvlsFormatRegistroTime(lastUscita.raw.orario) : "");
 
-      return totale;
-    }, 0);
-
+    // Backward compatibility for manual permesso
     const permessoMinuti = uscite.reduce(function (totale, item) {
       const raw = item.raw || {};
       const salvato = Number(raw.ore_permesso_minuti);
-
       if (Number.isFinite(salvato) && salvato >= 0) {
         return totale + Math.round(salvato);
       }
-
-      const calcolato = Number(raw.totale_calcolato_minuti);
-      if (Number.isFinite(calcolato) && calcolato > 0 && calcolato < 480) {
-        return totale + Math.max(0, 480 - Math.round(calcolato));
-      }
-
       return totale;
-    }, 0);
-
-    const straordinarioMinuti = Math.max(0, totaleCalcolatoMinuti - 480);
+    }, 0) || (calcoli && totaleCalcolatoMinuti < 480 ? 480 - totaleCalcolatoMinuti : 0);
     const note = [];
 
     if (dayItems.length > 0 && ingressi.length === 0) {
@@ -7493,16 +7496,16 @@ function cvlsBuildFoglioOreMensileData() {
       giorno: cvlsFormatRegistroDayLabel(currentDate),
       dataISO: dayKey,
       luogo: luoghi,
-      ingresso: firstIngresso ? cvlsFormatRegistroTime(firstIngresso.raw.orario) : "",
-      uscita: lastUscita ? cvlsFormatRegistroTime(lastUscita.raw.orario) : "",
+      ingresso: ingressoStr,
+      uscita: uscitaStr,
       totaleGiornoMinuti: totaleCalcolatoMinuti,
       totaleGiorno: cvlsMinutesToHourText(totaleCalcolatoMinuti, true),
       orePermessoMinuti: permessoMinuti,
       orePermesso: cvlsMinutesToHourText(permessoMinuti, true),
       oreStraordinarioMinuti: straordinarioMinuti,
       oreStraordinario: cvlsMinutesToHourText(straordinarioMinuti, true),
-      oreViaggioMinuti: repData ? (repData.oreViaggioPerGiorno[dayKey] || 0) : 0,
-      oreViaggio: repData ? cvlsMinutesToHourText(repData.oreViaggioPerGiorno[dayKey] || 0, true) : "",
+      oreViaggioMinuti: viaggioValido,
+      oreViaggio: cvlsMinutesToHourText(viaggioValido, true),
       reperibilita: repData && repData.giorniReperibilita && repData.giorniReperibilita.has(dayKey) ? "R" : "",
       oreReperibilitaMinuti: repData ? (repData.oreReperibilitaPerGiorno[dayKey] || 0) : 0,
       oreReperibilita: repData ? cvlsMinutesToHourText(repData.oreReperibilitaPerGiorno[dayKey] || 0, true) : "",
