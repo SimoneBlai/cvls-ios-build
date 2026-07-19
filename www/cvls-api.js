@@ -211,6 +211,14 @@ async function applyPendingChangeToSupabase(change) {
         if (error) throw error;
     }
     else if (type === "ADD_BOLLATURA") {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user || !user.id) {
+            throw new Error("Utente non autenticato durante il salvataggio della bollatura");
+        }
+        if (change.owner_user_id && change.owner_user_id !== user.id) {
+            throw new Error("Impossibile caricare una bollatura appartenente a un altro utente.");
+        }
+
         const toNullableInteger = function (value) {
             if (value === null || value === undefined || value === "") {
                 return null;
@@ -223,6 +231,7 @@ async function applyPendingChangeToSupabase(change) {
         };
 
         const { error } = await supabase.from('bollature').insert({
+            user_id: user.id,
             tecnico: payload.tecnico || localStorage.getItem("cvls_user_name") || "Tecnico",
             codice_completo: payload.codice_completo || null,
             tipo_bollatura: payload.tipo_bollatura,
@@ -460,7 +469,6 @@ async function fetchCompleteDatabaseFromSupabase(expectedUserId) {
         { data: cantiere_materiali },
         { data: spese },
         { data: richieste_modifica },
-        // TODO FASE 2: filtrare anche bollature per user_id dopo migrazione schema
         { data: bollature },
         res_registro_giornaliero,
         res_reperibilita_periodi,
@@ -485,7 +493,7 @@ async function fetchCompleteDatabaseFromSupabase(expectedUserId) {
         supabase.from('richieste_modifica').select('*').order('created_at', { ascending: false }),
         supabase.from('bollature')
             .select('*')
-            .eq('tecnico', String(localStorage.getItem("cvls_user_name") || "").trim())
+            .eq('user_id', userId)
             .order('orario', { ascending: false }),
         supabase.from('registro_giornaliero')
             .select('*')
@@ -628,6 +636,7 @@ async function fetchCompleteDatabaseFromSupabase(expectedUserId) {
 
     const formattedBollature = (bollature || []).map(b => ({
         id: b.id,
+        user_id: b.user_id,
         tecnico: b.tecnico,
         codice_completo: b.codice_completo || null,
         tipo_bollatura: b.tipo_bollatura,
