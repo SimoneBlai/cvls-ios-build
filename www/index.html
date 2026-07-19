@@ -793,14 +793,10 @@
         </div>
 
         <!-- Dati modificabili reperibilità -->
-        <div id="regPresDatiReperibilita" style="margin-top: 18px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #f9fafb; text-align: left;">
-          <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 10px;">Dati modificabili (Reperibilità)</div>
+        <div id="regPresDatiReperibilita" class="hidden" style="margin-top: 18px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #f9fafb; text-align: left;">
+          <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 10px;">Reperibilità del periodo</div>
           <div style="font-size: 12px; color: #4b5563; margin-bottom: 15px;">
-            Gestisci periodi e interventi di reperibilità. Le ore viaggio si modificano dal blocco Uscita della giornata.
-          </div>
-          <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <button class="primary-btn" style="flex: 1; padding: 8px; font-size: 12px; margin: 0;" onclick="CvlsReperibilita.openPeriodoDialog(null)">+ Periodo</button>
-            <button class="primary-btn" style="flex: 1; padding: 8px; font-size: 12px; margin: 0;" onclick="CvlsReperibilita.openInterventoDialog(null)">+ Intervento</button>
+            Consulta, modifica o elimina i dati di reperibilità del mese selezionato.
           </div>
           <div id="cvlsRegPresModificabiliPeriodi" style="margin-bottom: 15px;"></div>
           <div id="cvlsRegPresModificabiliInterventi"></div>
@@ -1103,7 +1099,7 @@
   <script src="cvls-attachments.js"></script>
   <script src="cvls-geobollatura.js?v=25"></script>
   <script src="pages/nota-spese/nota-spese.js?v=3"></script>
-  <script src="cvls-reperibilita.js?v=1"></script>
+  <script src="cvls-reperibilita.js?v=3"></script>
   <script src="app.js?v=29"></script>
 </body>
 

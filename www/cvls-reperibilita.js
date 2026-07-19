@@ -506,8 +506,44 @@ window.CvlsReperibilita = (function () {
       return (inv.data >= firstStr) && (inv.data <= lastStr);
     });
 
-    _renderPeriodi(periodi, "cvlsRegPresModificabiliPeriodi", "Nessun periodo nel mese selezionato");
-    _renderInterventi(interventi, "cvlsRegPresModificabiliInterventi", "Nessun intervento nel mese selezionato");
+    var mainContainer = document.getElementById("regPresDatiReperibilita");
+    var periodiContainer = document.getElementById("cvlsRegPresModificabiliPeriodi");
+    var interventiContainer = document.getElementById("cvlsRegPresModificabiliInterventi");
+
+    if (periodi.length === 0 && interventi.length === 0) {
+      if (mainContainer) mainContainer.classList.add("hidden");
+      if (periodiContainer) {
+        periodiContainer.innerHTML = "";
+        periodiContainer.style.display = "none";
+      }
+      if (interventiContainer) {
+        interventiContainer.innerHTML = "";
+        interventiContainer.style.display = "none";
+      }
+      return;
+    }
+
+    if (mainContainer) mainContainer.classList.remove("hidden");
+
+    if (periodi.length > 0) {
+      if (periodiContainer) periodiContainer.style.display = "";
+      _renderPeriodi(periodi, "cvlsRegPresModificabiliPeriodi", "");
+    } else {
+      if (periodiContainer) {
+        periodiContainer.innerHTML = "";
+        periodiContainer.style.display = "none";
+      }
+    }
+
+    if (interventi.length > 0) {
+      if (interventiContainer) interventiContainer.style.display = "";
+      _renderInterventi(interventi, "cvlsRegPresModificabiliInterventi", "");
+    } else {
+      if (interventiContainer) {
+        interventiContainer.innerHTML = "";
+        interventiContainer.style.display = "none";
+      }
+    }
   }
 
   // Helper interno per aggiornare le viste dopo un CRUD (periodi e interventi)
