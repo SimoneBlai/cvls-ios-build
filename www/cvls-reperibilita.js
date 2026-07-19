@@ -446,8 +446,8 @@ window.CvlsReperibilita = (function () {
           escapeHtml(formatDateIt(p.data_inizio)) + " → " + escapeHtml(formatDateIt(p.data_fine)) +
         "</span>" +
         "<div class=\"cvls-rep-item-actions\">" +
-          "<button class=\"cvls-rep-btn-icon\" onclick=\"CvlsReperibilita.openPeriodoDialog('" + escapeHtml(p.id) + "')\" aria-label=\"Modifica periodo\">✏️</button>" +
-          "<button class=\"cvls-rep-btn-icon delete\" onclick=\"CvlsReperibilita.confirmDeletePeriodo('" + escapeHtml(p.id) + "')\" aria-label=\"Elimina periodo\">🗑</button>" +
+          "<button class=\"cvls-rep-btn-icon\" onclick=\"CvlsReperibilita.openPeriodoDialog('" + escapeHtml(p.id) + "')\" aria-label=\"Modifica periodo\">Modifica</button>" +
+          "<button class=\"cvls-rep-btn-icon delete\" onclick=\"CvlsReperibilita.confirmDeletePeriodo('" + escapeHtml(p.id) + "')\" aria-label=\"Elimina periodo\">Elimina</button>" +
         "</div>" +
       "</div>";
     }).join("");
@@ -469,7 +469,7 @@ window.CvlsReperibilita = (function () {
     container.innerHTML = sorted.map(function (inv) {
       var presidioText = inv.nome_presidio || inv.codice_presidio || "";
       var ubicazioneText = inv.nome_ubicazione ? " – " + inv.nome_ubicazione : "";
-      var orario = inv.ora_chiamata ? " 📞 " + inv.ora_chiamata : "";
+      var orario = inv.ora_chiamata ? " Ora chiamata: " + inv.ora_chiamata : "";
       var durata = inv.durata_minuti ? " (" + _minutiToText(Number(inv.durata_minuti)) + ")" : "";
       var rit = inv.numero_rit ? " RIT: " + inv.numero_rit : "";
 
@@ -481,8 +481,8 @@ window.CvlsReperibilita = (function () {
           "<br><small>" + escapeHtml(presidioText + ubicazioneText + rit) + "</small>" +
         "</span>" +
         "<div class=\"cvls-rep-item-actions\">" +
-          "<button class=\"cvls-rep-btn-icon\" onclick=\"CvlsReperibilita.openInterventoDialog('" + escapeHtml(inv.id) + "')\" aria-label=\"Modifica intervento\">✏️</button>" +
-          "<button class=\"cvls-rep-btn-icon delete\" onclick=\"CvlsReperibilita.confirmDeleteIntervento('" + escapeHtml(inv.id) + "')\" aria-label=\"Elimina intervento\">🗑</button>" +
+          "<button class=\"cvls-rep-btn-icon\" onclick=\"CvlsReperibilita.openInterventoDialog('" + escapeHtml(inv.id) + "')\" aria-label=\"Modifica intervento\">Modifica</button>" +
+          "<button class=\"cvls-rep-btn-icon delete\" onclick=\"CvlsReperibilita.confirmDeleteIntervento('" + escapeHtml(inv.id) + "')\" aria-label=\"Elimina intervento\">Elimina</button>" +
         "</div>" +
       "</div>";
     }).join("");

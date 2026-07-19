@@ -7559,7 +7559,7 @@ function renderRegistroPresenzeFoglioOrePreview() {
     if (window.CvlsReperibilita && typeof window.CvlsReperibilita.openViaggioDialog === "function") {
       viaggioCell = (row.oreViaggio ? escapeHtml(row.oreViaggio) + " " : "") +
         "<button class=\"cvls-viaggio-edit-btn\" onclick=\"CvlsReperibilita.openViaggioDialog('" +
-        escapeHtml(row.dataISO) + "', " + (row.oreViaggioMinuti || 0) + ")\" aria-label=\"Modifica ore viaggio " + escapeHtml(row.giorno) + "\">✏️</button>";
+        escapeHtml(row.dataISO) + "', " + (row.oreViaggioMinuti || 0) + ")\" aria-label=\"Modifica ore viaggio " + escapeHtml(row.giorno) + "\">Modifica</button>";
     }
 
     return "<tr>" +
