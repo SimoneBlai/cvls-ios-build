@@ -156,6 +156,17 @@
   min-width: 0;
 }
 
+.reg-pres-ore-viaggio-disabled {
+  opacity: 0.7;
+  pointer-events: none;
+  background-color: #f3f4f6;
+}
+
+.reg-pres-ore-viaggio-disabled select {
+  background-color: #e5e7eb !important;
+  color: #6b7280 !important;
+}
+
 /* Su smartphone i gruppi affiancati diventano verticali */
 @media (max-width: 520px) {
   .cvls-rep-dialog-input-row {

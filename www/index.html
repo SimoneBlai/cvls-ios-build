@@ -24,7 +24,7 @@
   <title>CVLS</title>
   <link rel="stylesheet" href="style.css?v=25" />
   <link rel="stylesheet" href="pages/nota-spese/nota-spese.css?v=3" />
-  <link rel="stylesheet" href="cvls-reperibilita.css?v=2" />
+  <link rel="stylesheet" href="cvls-reperibilita.css?v=3" />
 </head>
 
 <body>
@@ -616,6 +616,16 @@
           </div>
         </div>
 
+        <div id="regPresOreViaggioBox" class="admin-box reg-pres-ore-viaggio-disabled">
+          <span class="admin-title">Ore viaggio</span>
+          <div class="reg-pres-ore-viaggio-content" style="margin-top: 12px;">
+            <select id="regPresOreViaggioSelect" class="cvls-dialog-form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; background-color: white; font-size: 14px;" disabled></select>
+            <div id="regPresOreViaggioHelp" style="font-size: 13px; color: #6b7280; margin-top: 8px; text-align: left;">
+              Selezionabile dopo la bollatura di ingresso
+            </div>
+          </div>
+        </div>
+
 
         <!-- Bollatura -->
         <div class="admin-box">
@@ -991,15 +1001,8 @@
       <div id="cvlsRepViaggioTitle" class="cvls-rep-dialog-title">Ore viaggio</div>
       <input type="hidden" id="cvlsRepViaggioData" />
       <div class="cvls-rep-dialog-field">
-        <label class="cvls-rep-dialog-label">Durata</label>
-        <div class="cvls-duration-input-group">
-          <input type="number" id="cvlsRepViaggioOre" class="cvls-duration-input"
-            min="0" max="23" placeholder="0" aria-label="Ore viaggio" />
-          <span class="cvls-duration-sep">h</span>
-          <input type="number" id="cvlsRepViaggioMin" class="cvls-duration-input"
-            min="0" max="59" placeholder="00" aria-label="Minuti viaggio" />
-          <span class="cvls-duration-sep">m</span>
-        </div>
+        <label class="cvls-rep-dialog-label" for="cvlsRepViaggioSelectDialog">Durata</label>
+        <select id="cvlsRepViaggioSelectDialog" class="cvls-dialog-form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; background-color: white; font-size: 14px;"></select>
       </div>
       <div class="cvls-rep-dialog-actions">
         <button id="cvlsRepViaggioAnnullaBtn" class="secondary-btn">Annulla</button>
@@ -1095,13 +1098,13 @@
 
   <script src="supabase-js.js"></script>
   <script src="cvls-supabase.js"></script>
-  <script src="cvls-api.js?v=26"></script>
+  <script src="cvls-api.js?v=27"></script>
   <script src="cvls-attachments.js"></script>
   <script src="cvls-registro-presenze-calcoli.js?v=2"></script>
-  <script src="cvls-geobollatura.js?v=26"></script>
+  <script src="cvls-geobollatura.js?v=28"></script>
   <script src="pages/nota-spese/nota-spese.js?v=3"></script>
-  <script src="cvls-reperibilita.js?v=3"></script>
-  <script src="app.js?v=30"></script>
+  <script src="cvls-reperibilita.js?v=5"></script>
+  <script src="app.js?v=33"></script>
 </body>
 
 </html>

@@ -8,6 +8,34 @@ window.CvlsGeobollatura = (function () {
     let isPageTrackingActive = false;
     let isModalOpen = false;
 
+    function getActiveCheckinStorageKey() {
+        const userId = String(localStorage.getItem("cvls_user_id") || "").trim();
+        return userId ? "cvls_attendance_active_" + userId : "";
+    }
+
+    function getActiveAttendance() {
+        const key = getActiveCheckinStorageKey();
+        if (!key) return null;
+        try {
+            const raw = localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function setActiveAttendance(data) {
+        const key = getActiveCheckinStorageKey();
+        if (!key) return;
+        localStorage.setItem(key, JSON.stringify(data));
+    }
+
+    function clearActiveAttendance() {
+        const key = getActiveCheckinStorageKey();
+        if (!key) return;
+        localStorage.removeItem(key);
+    }
+
     // Calcolo della distanza in metri tramite formula dell'Emi-seno (Haversine)
     function getDistance(lat1, lon1, lat2, lon2) {
         const R = 6371e3; // Raggio della terra in metri
@@ -234,13 +262,7 @@ window.CvlsGeobollatura = (function () {
     }
 
     function getActiveCheckin() {
-        const raw = localStorage.getItem("cvls_attendance_active");
-        if (!raw) return null;
-        try {
-            return JSON.parse(raw);
-        } catch (e) {
-            return null;
-        }
+        return getActiveAttendance();
     }
 
     function getRegistroPresenzeSelectedNames(fallbackCitta, fallbackCantiere, fallbackLuoghi) {
@@ -337,7 +359,7 @@ window.CvlsGeobollatura = (function () {
         };
 
         // Salva in localStorage come presenza attiva
-        localStorage.setItem("cvls_attendance_active", JSON.stringify(checkinInfo));
+        setActiveAttendance(checkinInfo);
 
         // Registra la bollatura localmente e in pending
         inviaBollatura("ingresso", checkinInfo);
@@ -385,7 +407,7 @@ window.CvlsGeobollatura = (function () {
         };
 
         // Rimuovi check-in attivo da localStorage
-        localStorage.removeItem("cvls_attendance_active");
+        clearActiveAttendance();
 
         // Registra la bollatura localmente e in pending
         inviaBollatura("uscita", checkoutInfo);
@@ -681,6 +703,10 @@ window.CvlsGeobollatura = (function () {
             if (distText) distText.textContent = "GPS non disponibile";
             disableBtn(ingressoBtn);
             disableBtn(uscitaBtn);
+
+            if (typeof window.cvlsAggiornaOreViaggioRegistroPresenze === "function") {
+                window.cvlsAggiornaOreViaggioRegistroPresenze();
+            }
             return;
         }
 
@@ -740,6 +766,10 @@ window.CvlsGeobollatura = (function () {
 
         if (typeof window.updateRegistroPresenzePranzoUI === "function") {
             window.updateRegistroPresenzePranzoUI();
+        }
+
+        if (typeof window.cvlsAggiornaOreViaggioRegistroPresenze === "function") {
+            window.cvlsAggiornaOreViaggioRegistroPresenze();
         }
     }
 
@@ -817,7 +847,7 @@ window.CvlsGeobollatura = (function () {
             return;
         }
 
-        localStorage.setItem("cvls_attendance_active", JSON.stringify(checkinInfo));
+        setActiveAttendance(checkinInfo);
         window.registroPresenzeLuogoTouched = true;
 
         inviaBollatura("ingresso", checkinInfo);
@@ -923,7 +953,7 @@ window.CvlsGeobollatura = (function () {
             return;
         }
 
-        localStorage.removeItem("cvls_attendance_active");
+        clearActiveAttendance();
 
         inviaBollatura("uscita", checkoutInfo);
         syncBollatureRegistroPresenzeAuto();
@@ -962,3 +992,82 @@ window.CvlsGeobollatura = (function () {
         getActiveCheckin: getActiveCheckin
     };
 })();
+
+window.cvlsAggiornaOreViaggioRegistroPresenze = function() {
+    const box = document.getElementById("regPresOreViaggioBox");
+    const select = document.getElementById("regPresOreViaggioSelect");
+    const help = document.getElementById("regPresOreViaggioHelp");
+
+    if (!box || !select || !help) return;
+
+    if (select.options.length === 0) {
+        for (let m = 0; m <= 23 * 60 + 30; m += 30) {
+            const h = Math.floor(m / 60);
+            const min = m % 60;
+            let label = "";
+            if (h === 0 && min === 0) label = "0 ore";
+            else if (h === 0) label = min + " min";
+            else if (min === 0) label = h + (h === 1 ? " ora" : " ore");
+            else label = h + (h === 1 ? " ora " : " ore ") + min + " min";
+
+            const opt = document.createElement("option");
+            opt.value = m;
+            opt.textContent = label;
+            select.appendChild(opt);
+        }
+    }
+
+    const activeCheckin = window.CvlsGeobollatura.getActiveCheckin();
+    if (!activeCheckin || !activeCheckin.time) {
+        box.classList.add("reg-pres-ore-viaggio-disabled");
+        select.disabled = true;
+        select.value = "0";
+        help.textContent = "Selezionabile dopo la bollatura di ingresso";
+    } else {
+        box.classList.remove("reg-pres-ore-viaggio-disabled");
+        select.disabled = false;
+        help.textContent = "Seleziona le ore viaggio della giornata";
+
+        let oreViaggioMin = 0;
+        try {
+            const ingressoDate = new Date(activeCheckin.time);
+            const pad = (n) => String(n).padStart(2, "0");
+            const dateStr = ingressoDate.getFullYear() + "-" + pad(ingressoDate.getMonth() + 1) + "-" + pad(ingressoDate.getDate());
+
+            if (window.CvlsReperibilita && typeof window.CvlsReperibilita.getOreViaggioLocale === "function") {
+                oreViaggioMin = window.CvlsReperibilita.getOreViaggioLocale(dateStr);
+            }
+        } catch(e) {}
+
+        select.value = String(oreViaggioMin);
+    }
+};
+
+document.addEventListener("DOMContentLoaded", function() {
+    const select = document.getElementById("regPresOreViaggioSelect");
+    if (select) {
+        select.addEventListener("change", function() {
+            const activeCheckin = window.CvlsGeobollatura.getActiveCheckin();
+            if (!activeCheckin || !activeCheckin.time) return;
+
+            const val = Math.max(0, parseInt(this.value) || 0);
+            if (val % 30 !== 0) return;
+
+            const ingressoDate = new Date(activeCheckin.time);
+            const pad = (n) => String(n).padStart(2, "0");
+            const dateStr = ingressoDate.getFullYear() + "-" + pad(ingressoDate.getMonth() + 1) + "-" + pad(ingressoDate.getDate());
+
+            try {
+                if (window.CvlsReperibilita && typeof window.CvlsReperibilita.salvaOreViaggioLocale === "function") {
+                    const success = window.CvlsReperibilita.salvaOreViaggioLocale(dateStr, val);
+                    if (success) {
+                        window.cvlsAggiornaOreViaggioRegistroPresenze();
+                        if (typeof window.renderRegistroPresenzeList === "function") {
+                            window.renderRegistroPresenzeList();
+                        }
+                    }
+                }
+            } catch(e) {}
+        });
+    }
+});

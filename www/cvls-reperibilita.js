@@ -191,7 +191,7 @@ window.CvlsReperibilita = (function () {
       var cur = new Date(start.getTime());
       while (cur <= end) {
         var weekEnd = addDays(cur, 6);
-        
+
         var giorniNelMese = 0;
         var d = new Date(cur.getTime());
         while (d <= weekEnd) {
@@ -237,17 +237,13 @@ window.CvlsReperibilita = (function () {
     _removePendingByDataAndType(dateKey, TYPE_DELETE_ORE_VIAGGIO);
 
     // Aggiungi pending change
-    var pending = window.getPendingChanges();
-    pending.push({
-      changeId:  window.createPendingChangeId(),
+    window.savePendingChange({
       type:      TYPE_SAVE_ORE_VIAGGIO,
-      createdAt: new Date().toISOString(),
       payload: {
         data: dateKey,
         ore_viaggio_minuti: minuti
       }
     });
-    localStorage.setItem("cvls_pending_changes", JSON.stringify(pending));
 
     window.saveLocalData();
     window.updateStatusBox();
@@ -268,14 +264,10 @@ window.CvlsReperibilita = (function () {
     _removePendingByDataAndType(dateKey, TYPE_SAVE_ORE_VIAGGIO);
 
     // Aggiungi pending delete
-    var pending = window.getPendingChanges();
-    pending.push({
-      changeId:  window.createPendingChangeId(),
+    window.savePendingChange({
       type:      TYPE_DELETE_ORE_VIAGGIO,
-      createdAt: new Date().toISOString(),
       payload:   { data: dateKey }
     });
-    localStorage.setItem("cvls_pending_changes", JSON.stringify(pending));
 
     window.saveLocalData();
     window.updateStatusBox();
@@ -302,14 +294,10 @@ window.CvlsReperibilita = (function () {
     // Upsert pending per lo stesso id
     _removePendingById(id, TYPE_SAVE_REP_PERIODO);
 
-    var pending = window.getPendingChanges();
-    pending.push({
-      changeId:  window.createPendingChangeId(),
+    window.savePendingChange({
       type:      TYPE_SAVE_REP_PERIODO,
-      createdAt: new Date().toISOString(),
       payload:   Object.assign({}, periodo)
     });
-    localStorage.setItem("cvls_pending_changes", JSON.stringify(pending));
 
     window.saveLocalData();
     window.updateStatusBox();
@@ -325,14 +313,10 @@ window.CvlsReperibilita = (function () {
 
     _removePendingById(id, TYPE_SAVE_REP_PERIODO);
 
-    var pending = window.getPendingChanges();
-    pending.push({
-      changeId:  window.createPendingChangeId(),
+    window.savePendingChange({
       type:      TYPE_DELETE_REP_PERIODO,
-      createdAt: new Date().toISOString(),
       payload:   { id: id }
     });
-    localStorage.setItem("cvls_pending_changes", JSON.stringify(pending));
 
     window.saveLocalData();
     window.updateStatusBox();
@@ -358,14 +342,10 @@ window.CvlsReperibilita = (function () {
 
     _removePendingById(id, TYPE_SAVE_REP_INTERVENTO);
 
-    var pending = window.getPendingChanges();
-    pending.push({
-      changeId:  window.createPendingChangeId(),
+    window.savePendingChange({
       type:      TYPE_SAVE_REP_INTERVENTO,
-      createdAt: new Date().toISOString(),
       payload:   Object.assign({}, intervento)
     });
-    localStorage.setItem("cvls_pending_changes", JSON.stringify(pending));
 
     window.saveLocalData();
     window.updateStatusBox();
@@ -381,14 +361,10 @@ window.CvlsReperibilita = (function () {
 
     _removePendingById(id, TYPE_SAVE_REP_INTERVENTO);
 
-    var pending = window.getPendingChanges();
-    pending.push({
-      changeId:  window.createPendingChangeId(),
+    window.savePendingChange({
       type:      TYPE_DELETE_REP_INTERVENTO,
-      createdAt: new Date().toISOString(),
       payload:   { id: id }
     });
-    localStorage.setItem("cvls_pending_changes", JSON.stringify(pending));
 
     window.saveLocalData();
     window.updateStatusBox();
@@ -404,7 +380,7 @@ window.CvlsReperibilita = (function () {
     var filtered = pending.filter(function (c) {
       return !(c && c.type === type && c.payload && c.payload.data === dateKey);
     });
-    localStorage.setItem("cvls_pending_changes", JSON.stringify(filtered));
+    window.setPendingChanges(filtered);
   }
 
   function _removePendingById(id, type) {
@@ -412,7 +388,7 @@ window.CvlsReperibilita = (function () {
     var filtered = pending.filter(function (c) {
       return !(c && c.type === type && c.payload && c.payload.id === id);
     });
-    localStorage.setItem("cvls_pending_changes", JSON.stringify(filtered));
+    window.setPendingChanges(filtered);
   }
 
   /* -------------------------------------------------------
@@ -571,17 +547,31 @@ window.CvlsReperibilita = (function () {
     var dlg = document.getElementById("cvlsRepViaggioDialog");
     if (!dlg) return;
 
-    var ore = Math.floor((Number(currentMinuti) || 0) / 60);
-    var min = (Number(currentMinuti) || 0) % 60;
-
     var inData = document.getElementById("cvlsRepViaggioData");
-    var inOre  = document.getElementById("cvlsRepViaggioOre");
-    var inMin  = document.getElementById("cvlsRepViaggioMin");
+    var inSel  = document.getElementById("cvlsRepViaggioSelectDialog");
     var delBtn = document.getElementById("cvlsRepViaggioCancellaBtn");
 
     if (inData) inData.value = dateKey;
-    if (inOre)  inOre.value  = ore;
-    if (inMin)  inMin.value  = min;
+
+    if (inSel) {
+      if (inSel.options.length === 0) {
+        for (let m = 0; m <= 23 * 60 + 30; m += 30) {
+            const h = Math.floor(m / 60);
+            const min = m % 60;
+            let label = "";
+            if (h === 0 && min === 0) label = "0 ore";
+            else if (h === 0) label = min + " min";
+            else if (min === 0) label = h + (h === 1 ? " ora" : " ore");
+            else label = h + (h === 1 ? " ora " : " ore ") + min + " min";
+
+            const opt = document.createElement("option");
+            opt.value = m;
+            opt.textContent = label;
+            inSel.appendChild(opt);
+        }
+      }
+      inSel.value = String(Math.max(0, parseInt(currentMinuti) || 0));
+    }
 
     if (delBtn) {
       delBtn.style.display = (Number(currentMinuti) > 0) ? "" : "none";
@@ -600,27 +590,20 @@ window.CvlsReperibilita = (function () {
 
   function confirmSaveViaggio() {
     var inData = document.getElementById("cvlsRepViaggioData");
-    var inOre  = document.getElementById("cvlsRepViaggioOre");
-    var inMin  = document.getElementById("cvlsRepViaggioMin");
+    var inSel  = document.getElementById("cvlsRepViaggioSelectDialog");
 
     var dateKey = inData ? inData.value : "";
-    var ore  = Math.max(0, Math.round(Number(inOre ? inOre.value : 0) || 0));
-    var min  = Math.max(0, Math.min(59, Math.round(Number(inMin ? inMin.value : 0) || 0)));
-    var totale = ore * 60 + min;
+    var totale = inSel ? Math.max(0, parseInt(inSel.value) || 0) : 0;
 
     if (!dateKey) {
       window.cvlsAlert("Data non valida.", "Ore viaggio");
       return;
     }
 
-    saveOreViaggio(dateKey, totale);
+    salvaOreViaggioLocale(dateKey, totale);
     closeViaggioDialog();
-    window.showCvlsToast("Ore viaggio salvate");
-
-    // Aggiorna preview foglio ore se aperta
-    if (typeof window.renderRegistroPresenzeFoglioOrePreview === "function") {
-      window.renderRegistroPresenzeFoglioOrePreview();
-    }
+    window.showCvlsToast(totale === 0 ? "Ore viaggio rimosse" : "Ore viaggio salvate");
+    _aggiornaTuttoUI();
   }
 
   function confirmDeleteViaggio() {
@@ -631,16 +614,60 @@ window.CvlsReperibilita = (function () {
     window.cvlsConfirm(
       "Eliminare le ore viaggio del " + formatDateIt(dateKey) + "?",
       function () {
-        deleteOreViaggio(dateKey);
+        salvaOreViaggioLocale(dateKey, 0);
         closeViaggioDialog();
         window.showCvlsToast("Ore viaggio eliminate");
-        if (typeof window.renderRegistroPresenzeFoglioOrePreview === "function") {
-          window.renderRegistroPresenzeFoglioOrePreview();
-        }
+        _aggiornaTuttoUI();
       },
       null,
       "Elimina"
     );
+  }
+
+  function getOreViaggioLocale(dateKey) {
+    var s = getAppState();
+    if (!s.oreViaggio) return 0;
+    var match = s.oreViaggio.find(function (r) { return r.data === dateKey; });
+    return match ? (Number(match.ore_viaggio_minuti) || 0) : 0;
+  }
+
+  function salvaOreViaggioLocale(dateKey, minuti) {
+    if (typeof minuti !== "number" || isNaN(minuti) || minuti < 0 || minuti > 1410 || minuti % 30 !== 0) {
+      return false;
+    }
+    var s = getAppState();
+    if (!s.oreViaggio) s.oreViaggio = [];
+    var idx = s.oreViaggio.findIndex(function (r) { return r.data === dateKey; });
+    if (minuti === 0) {
+      if (idx !== -1) s.oreViaggio.splice(idx, 1);
+    } else {
+      if (idx !== -1) s.oreViaggio[idx].ore_viaggio_minuti = minuti;
+      else s.oreViaggio.push({ data: dateKey, ore_viaggio_minuti: minuti });
+    }
+    if (typeof window.cvlsSaveDatiLocali === "function") {
+      window.cvlsSaveDatiLocali();
+    } else {
+      window.saveLocalData();
+    }
+    return true;
+  }
+
+  function _aggiornaTuttoUI() {
+    if (typeof window.renderRegistroPresenzeList === "function") {
+      window.renderRegistroPresenzeList();
+    }
+    if (typeof window.cvlsAggiornaOreViaggioRegistroPresenze === "function") {
+      window.cvlsAggiornaOreViaggioRegistroPresenze();
+    }
+    if (typeof window.renderRegistroPresenzeFoglioOrePreview === "function") {
+      var preview = document.getElementById("regPresFoglioOrePreview");
+      if (preview && !preview.classList.contains("hidden")) {
+         var btn = document.getElementById("regPresVisualizzaFoglioOreBtn");
+         if (btn) {
+           btn.click();
+         }
+      }
+    }
   }
 
   /* -------------------------------------------------------
@@ -1085,6 +1112,8 @@ window.CvlsReperibilita = (function () {
     getDataForMonth: getDataForMonth,
 
     // Apertura dialog dall'esterno (via onclick inline)
+    getOreViaggioLocale:     getOreViaggioLocale,
+    salvaOreViaggioLocale:   salvaOreViaggioLocale,
     openViaggioDialog:       openViaggioDialog,
     openPeriodoDialog:       openPeriodoDialog,
     openInterventoDialog:    openInterventoDialog,

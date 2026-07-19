@@ -19,8 +19,26 @@ const STORAGE_KEYS = {
   DEVICE_KEY: "cvls_device_key",
   LAST_SYNC: "cvls_last_sync",
   DATA: "cvls_local_data",
-  PENDING_CHANGES: "cvls_pending_changes"
+  PENDING_CHANGES: "cvls_pending_changes",
+  USER_ID: "cvls_user_id",
+  PRIVATE_DATA_PREFIX: "cvls_private_data_",
+  PRIVATE_PENDING_PREFIX: "cvls_pending_changes_",
+  LEGACY_PRIVATE_BACKUP: "cvls_legacy_private_data_backup",
+  LEGACY_PENDING_BACKUP: "cvls_legacy_pending_backup",
+  LEGACY_ATTENDANCE_BACKUP: "cvls_legacy_attendance_backup"
 };
+
+const CVLS_PRIVATE_DATA_FIELDS = [
+  "bollature",
+  "oreViaggio",
+  "reperibilita_periodi",
+  "reperibilita_interventi"
+];
+
+function cvlsGetCurrentUserId() {
+  const uid = localStorage.getItem(STORAGE_KEYS.USER_ID);
+  return uid ? String(uid).trim() : "";
+}
 
 const AUTH_STATUS = {
   NONE: "none",
@@ -102,6 +120,7 @@ let cvlsAttendanceAutoSyncTimer = null;
 let cvlsSyncWatchdogTimer = null;
 let cvlsActiveSyncSnapshot = {};
 let cvlsAttachmentSelectionContext = null;
+let cvlsAuthSessionGeneration = 0;
 /*
  * Cronologia delle pagine lasciate usando la navigazione indietro.
  * Permette lo swipe opposto per tornare avanti.
@@ -144,23 +163,16 @@ async function initApp() {
     // Controlla se già autorizzato (app installata e loggata)
     await checkStartupAuthorization();
 
-    if (localStorage.getItem(STORAGE_KEYS.AUTH_STATUS) === AUTH_STATUS.AUTHORIZED) {
-      // Utente con app e loggato → apri direttamente la scheda del dispositivo
-      openPendingQrIfPresent();
-      syncDownloadOnlyOnStartup().catch(e => console.error("Errore sync avvio:", e));
-    } else {
+    if (localStorage.getItem(STORAGE_KEYS.AUTH_STATUS) !== AUTH_STATUS.AUTHORIZED) {
       // Utente senza app o non loggato → mostra pagina pubblica
       mostraSchedaPubblica(codicePulito);
     }
+    // Se autorizzato, checkStartupAuthorization ha già chiamato cvlsBootstrapAuthenticatedUser
     return;
   }
 
   await checkStartupAuthorization();
   updateTopbarLeftButton();
-
-  if (localStorage.getItem(STORAGE_KEYS.AUTH_STATUS) === AUTH_STATUS.AUTHORIZED) {
-    syncDownloadOnlyOnStartup().catch(e => console.error("Errore sync avvio:", e));
-  }
 }
 
 
@@ -173,7 +185,7 @@ function bindEvents() {
   bind("sideOverlay", "click", closeSideMenu);
 
   bind("openAdminBollatureBtn", "click", openAdminBollature);
-  
+
   bind("sideOpenRegistroPresenzeBtn", "click", openRegistroPresenzePage);
   bind("sideOpenNotaSpeseBtn", "click", () => cvlsShowPage("pageNotaSpese", "Nota Spese"));
   bind("sideOpenDocumentiBtn", "click", () => cvlsShowPage("pageDocumenti", "Documenti"));
@@ -432,22 +444,16 @@ async function checkStartupAuthorization() {
     if (user) {
       currentUserProfile = await window.CvlsSupabase.getProfile(user.id);
       if (currentUserProfile) {
-        localStorage.setItem(STORAGE_KEYS.AUTH_STATUS, AUTH_STATUS.AUTHORIZED);
-        localStorage.setItem("cvls_user_email", user.email);
-        localStorage.setItem("cvls_user_name", String(currentUserProfile.nome_tecnico || "").trim());
-        localStorage.setItem("cvls_user_role", currentUserProfile.ruolo);
-        localStorage.setItem("cvls_bollatura_nome_sede", currentUserProfile.bollatura_nome_sede || "Ozegna (Sede)");
-        localStorage.setItem("cvls_bollatura_latitudine", currentUserProfile.bollatura_latitudine !== null && currentUserProfile.bollatura_latitudine !== undefined ? currentUserProfile.bollatura_latitudine : 45.3496);
-        localStorage.setItem("cvls_bollatura_longitudine", currentUserProfile.bollatura_longitudine !== null && currentUserProfile.bollatura_longitudine !== undefined ? currentUserProfile.bollatura_longitudine : 7.7470);
-        localStorage.setItem("cvls_bollatura_raggio", currentUserProfile.bollatura_raggio !== null && currentUserProfile.bollatura_raggio !== undefined ? currentUserProfile.bollatura_raggio : 200);
-        showMainApp();
+        await cvlsBootstrapAuthenticatedUser(user, currentUserProfile);
         return;
       }
     }
   } catch (error) {
     console.error("Errore verifica sessione:", error);
   }
-  
+
+  cvlsAuthSessionGeneration++;
+  localStorage.removeItem(STORAGE_KEYS.USER_ID);
   localStorage.setItem(STORAGE_KEYS.AUTH_STATUS, AUTH_STATUS.NONE);
   showAuthScreen();
   setAuthInfo("");
@@ -478,16 +484,7 @@ async function loginWithSupabase() {
       throw new Error("Profilo utente non configurato su database.");
     }
 
-    localStorage.setItem(STORAGE_KEYS.AUTH_STATUS, AUTH_STATUS.AUTHORIZED);
-    localStorage.setItem("cvls_user_email", user.email);
-    localStorage.setItem("cvls_user_name", String(currentUserProfile.nome_tecnico || "").trim());
-    localStorage.setItem("cvls_user_role", currentUserProfile.ruolo);
-    localStorage.setItem("cvls_bollatura_nome_sede", currentUserProfile.bollatura_nome_sede || "Ozegna (Sede)");
-    localStorage.setItem("cvls_bollatura_latitudine", currentUserProfile.bollatura_latitudine !== null && currentUserProfile.bollatura_latitudine !== undefined ? currentUserProfile.bollatura_latitudine : 45.3496);
-    localStorage.setItem("cvls_bollatura_longitudine", currentUserProfile.bollatura_longitudine !== null && currentUserProfile.bollatura_longitudine !== undefined ? currentUserProfile.bollatura_longitudine : 7.7470);
-    localStorage.setItem("cvls_bollatura_raggio", currentUserProfile.bollatura_raggio !== null && currentUserProfile.bollatura_raggio !== undefined ? currentUserProfile.bollatura_raggio : 200);
-
-    showMainApp();
+    await cvlsBootstrapAuthenticatedUser(user, currentUserProfile);
   } catch (error) {
     setAuthInfo(error.message || "Errore durante il login.");
     alert(error.message || "Email o password errati.");
@@ -500,13 +497,49 @@ function logoutWithSupabase() {
   cvlsConfirm(
     "Sei sicuro di voler effettuare il logout?",
     async function () {
+      // 1. Invalida subito la generazione di sessione per bloccare download in corso
+      cvlsAuthSessionGeneration++;
+
+      // 2. Salva la cache privata dell'utente uscente prima di rimuovere l'identità
+      const currentUserId = cvlsGetCurrentUserId();
+      if (currentUserId) {
+        cvlsSavePrivateDataForUser(currentUserId);
+      }
+
+      // 3. Interrompi tracking GPS e timer di sync bollature
+      if (window.CvlsGeobollatura && typeof window.CvlsGeobollatura.stopGpsTracking === "function") {
+        window.CvlsGeobollatura.stopGpsTracking();
+      }
+      clearTimeout(cvlsAttendanceAutoSyncTimer);
+      cvlsAttendanceAutoSyncTimer = null;
+      clearTimeout(cvlsSyncWatchdogTimer);
+      cvlsSyncWatchdogTimer = null;
+
+      // 4. Logout Supabase (solo invalidazione token, nessun upload)
       try {
         await window.CvlsSupabase.logout();
       } catch (e) {
         console.warn("Errore durante logout Supabase:", e);
       }
-      
+
+      // 5. Pulisci i dataset privati dalla memoria
+      cvlsClearPrivateDataInMemory();
+
+      // 6. Aggiorna le viste personali (ora vuote)
+      if (typeof renderRegistroPresenzeList === "function") renderRegistroPresenzeList();
+      if (window.CvlsReperibilita && typeof window.CvlsReperibilita.renderBoxReperibilita === "function") {
+        window.CvlsReperibilita.renderBoxReperibilita();
+      }
+      if (window.CvlsReperibilita && typeof window.CvlsReperibilita.renderRegistroModificabili === "function") {
+        window.CvlsReperibilita.renderRegistroModificabili();
+      }
+      if (typeof window.cvlsAggiornaOreViaggioRegistroPresenze === "function") {
+        window.cvlsAggiornaOreViaggioRegistroPresenze();
+      }
+
+      // 7. Rimuovi identità (non la cache privata né le pending private)
       localStorage.removeItem(STORAGE_KEYS.AUTH_STATUS);
+      localStorage.removeItem(STORAGE_KEYS.USER_ID);
       localStorage.removeItem("cvls_user_email");
       localStorage.removeItem("cvls_user_name");
       localStorage.removeItem("cvls_user_role");
@@ -537,12 +570,19 @@ function hideWaitingAuthModal() {
 }
 
 function bloccaAccessoNonAutorizzato(message) {
-  localStorage.setItem(STORAGE_KEYS.PENDING_CHANGES, JSON.stringify([]));
+  cvlsAuthSessionGeneration++;
+  const blockedUserId = cvlsGetCurrentUserId();
+  if (blockedUserId) {
+    cvlsSavePrivateDataForUser(blockedUserId);
+  }
+  // Non cancellare le pending private: appartengono all'utente tramite owner_user_id
   localStorage.removeItem(STORAGE_KEYS.DATA);
+  cvlsClearPrivateDataInMemory();
   dati = createEmptyData();
   selezione = { citta: null, presidio: null, ubicazione: null };
   currentDeviceId = "";
   currentDeviceData = null;
+  localStorage.removeItem(STORAGE_KEYS.USER_ID);
   updateStatusBox();
 
   localStorage.setItem(STORAGE_KEYS.AUTH_STATUS, AUTH_STATUS.NONE);
@@ -816,27 +856,123 @@ function syncApp() {
   failSyncUI("Collegamento API non disponibile");
 }
 
-async function syncDownloadOnlyOnStartup() {
-  const status = localStorage.getItem(STORAGE_KEYS.AUTH_STATUS);
-  if (status !== AUTH_STATUS.AUTHORIZED) {
+async function cvlsBootstrapAuthenticatedUser(user, profile) {
+  if (!user || !user.id) return;
+  const userId = user.id;
+
+  // 1. Incrementa la generazione: invalida qualsiasi download precedente in corso
+  cvlsAuthSessionGeneration++;
+  const generation = cvlsAuthSessionGeneration;
+
+  // 2. Mantieni authScreen visibile durante il caricamento
+  setAuthInfo("Caricamento dati personali...");
+
+  // 3. Salva tutti i dati di identità e profilo
+  localStorage.setItem(STORAGE_KEYS.AUTH_STATUS, AUTH_STATUS.AUTHORIZED);
+  localStorage.setItem(STORAGE_KEYS.USER_ID, userId);
+  localStorage.setItem("cvls_user_email", user.email || "");
+  localStorage.setItem("cvls_user_name", String(profile.nome_tecnico || "").trim());
+  localStorage.setItem("cvls_user_role", profile.ruolo || "");
+  localStorage.setItem("cvls_bollatura_nome_sede", profile.bollatura_nome_sede || "Ozegna (Sede)");
+  localStorage.setItem("cvls_bollatura_latitudine", profile.bollatura_latitudine !== null && profile.bollatura_latitudine !== undefined ? profile.bollatura_latitudine : 45.3496);
+  localStorage.setItem("cvls_bollatura_longitudine", profile.bollatura_longitudine !== null && profile.bollatura_longitudine !== undefined ? profile.bollatura_longitudine : 7.7470);
+  localStorage.setItem("cvls_bollatura_raggio", profile.bollatura_raggio !== null && profile.bollatura_raggio !== undefined ? profile.bollatura_raggio : 200);
+
+  // 4. Preserva i dati condivisi già in memoria (caricati da loadLocalData)
+  //    Azzera solo i quattro dataset privati e carica quelli dell'utente
+  cvlsClearPrivateDataInMemory();
+  cvlsLoadPrivateDataForUser(userId);
+
+  // 5. Conserva copia della cache privata come fallback offline
+  const privateDataFallback = cvlsExtractPrivateData(dati);
+
+  updateStatusBox();
+
+  // 6. Tenta download dati aggiornati
+  const downloadOk = await syncDownloadOnlyForUser(userId, generation);
+
+  // 7. Verifica coerenza dopo il download
+  if (
+    cvlsAuthSessionGeneration !== generation ||
+    cvlsGetCurrentUserId() !== userId ||
+    localStorage.getItem(STORAGE_KEYS.AUTH_STATUS) !== AUTH_STATUS.AUTHORIZED
+  ) {
+    // Sessione cambiata durante il download: abbandona
+    console.log("Bootstrap annullato: sessione cambiata durante il download.");
     return;
   }
 
-  if (cvlsSyncInProgress || cvlsStartupDownloadSyncRunning) {
-    return;
+  if (!downloadOk) {
+    // Fallback: usa la cache privata già caricata
+    cvlsApplyPrivateData(privateDataFallback);
+    updateStatusBox();
+  }
+
+  // 8. Mostra l'app solo dopo che i dati sono pronti
+  showMainApp();
+
+  // 9. Messaggio fallback se il download non è riuscito
+  if (!downloadOk) {
+    const hasPrivateData = CVLS_PRIVATE_DATA_FIELDS.some(function(f) {
+      return Array.isArray(dati[f]) && dati[f].length > 0;
+    });
+    if (hasPrivateData) {
+      showCvlsToast("Download non riuscito. Visualizzati i dati locali di questo utente.");
+    } else {
+      showCvlsToast("Download non riuscito. Nessun dato locale disponibile per questo utente.");
+    }
+  }
+}
+
+async function syncDownloadOnlyForUser(expectedUserId, expectedGeneration) {
+  // Verifica pre-download
+  if (!navigator.onLine) {
+    console.log("Offline: sync solo download saltata.");
+    return false;
+  }
+
+  const status = localStorage.getItem(STORAGE_KEYS.AUTH_STATUS);
+  if (status !== AUTH_STATUS.AUTHORIZED) {
+    console.log("Utente non autorizzato: sync solo download saltata.");
+    return false;
+  }
+
+  const currentUserId = cvlsGetCurrentUserId();
+  if (currentUserId !== expectedUserId) {
+    console.log("Disallineamento utente: sync solo download saltata.");
+    return false;
+  }
+
+  if (expectedGeneration !== undefined && cvlsAuthSessionGeneration !== expectedGeneration) {
+    console.log("Generazione sessione non valida: sync solo download saltata.");
+    return false;
+  }
+
+  // Non bloccare il download del nuovo utente per un sync precedente ancora in corso;
+  // ogni download porta la propria expectedGeneration e viene scartato post-await se obsoleto
+  if (cvlsSyncInProgress) {
+    return false;
   }
 
   cvlsStartupDownloadSyncRunning = true;
-  const pendingBefore = localStorage.getItem(STORAGE_KEYS.PENDING_CHANGES);
 
   try {
     if (typeof fetchCompleteDatabaseFromSupabase !== "function") {
       console.warn("fetchCompleteDatabaseFromSupabase non disponibile.");
-      cvlsStartupDownloadSyncRunning = false;
-      return;
+      return false;
     }
 
-    const remoteData = await fetchCompleteDatabaseFromSupabase();
+    const remoteData = await fetchCompleteDatabaseFromSupabase(expectedUserId);
+
+    // Verifica post-download prima di applicare
+    if (
+      (expectedGeneration !== undefined && cvlsAuthSessionGeneration !== expectedGeneration) ||
+      cvlsGetCurrentUserId() !== expectedUserId ||
+      localStorage.getItem(STORAGE_KEYS.AUTH_STATUS) !== AUTH_STATUS.AUTHORIZED
+    ) {
+      console.log("Sessione cambiata dopo il download: dati remoti scartati.");
+      return false;
+    }
 
     if (!remoteData) {
       throw new Error("Nessun dato restituito dal database.");
@@ -849,17 +985,6 @@ async function syncDownloadOnlyOnStartup() {
 
     saveLocalData();
 
-    const pendingAfter = localStorage.getItem(STORAGE_KEYS.PENDING_CHANGES);
-    if (pendingBefore !== pendingAfter) {
-      if (pendingBefore) {
-        localStorage.setItem(STORAGE_KEYS.PENDING_CHANGES, pendingBefore);
-      } else {
-        localStorage.removeItem(STORAGE_KEYS.PENDING_CHANGES);
-      }
-      reapplyPendingArchiveChanges(getPendingChanges());
-      saveLocalData();
-    }
-
     updateStatusBox();
     renderArchivio();
 
@@ -871,12 +996,22 @@ async function syncDownloadOnlyOnStartup() {
       if (typeof renderCvls === "function") renderCvls();
     }
 
+    if (typeof renderRegistroPresenzeList === "function") renderRegistroPresenzeList();
+    if (window.CvlsReperibilita && typeof window.CvlsReperibilita.renderBoxReperibilita === "function") {
+      window.CvlsReperibilita.renderBoxReperibilita();
+    }
+
     console.log("Sincronizzazione automatica solo download all'avvio completata.");
+    return true;
 
   } catch (error) {
     console.error("Errore durante la sincronizzazione automatica solo download all'avvio:", error);
+    return false;
   } finally {
-    cvlsStartupDownloadSyncRunning = false;
+    // Azzera il flag solo se questa richiesta appartiene ancora alla generazione corrente
+    if (expectedGeneration === undefined || cvlsAuthSessionGeneration === expectedGeneration) {
+      cvlsStartupDownloadSyncRunning = false;
+    }
   }
 }
 
@@ -1159,20 +1294,14 @@ window.onAndroidAttachmentsSelected = function (resultText) {
   });
 
   try {
-    localStorage.setItem(
-      STORAGE_KEYS.PENDING_CHANGES,
-      JSON.stringify(pending)
-    );
+    setPendingChanges(pending);
 
     saveLocalData();
   } catch (error) {
     dati.allegati[deviceId].splice(localLengthBefore);
 
     try {
-      localStorage.setItem(
-        STORAGE_KEYS.PENDING_CHANGES,
-        JSON.stringify(pendingBefore)
-      );
+      setPendingChanges(pendingBefore);
     } catch (restoreError) {
       console.error(
         "Impossibile ripristinare la coda allegati:",
@@ -2476,10 +2605,7 @@ function removeConfirmedSyncSnapshotChanges(
     return true;
   });
 
-  localStorage.setItem(
-    STORAGE_KEYS.PENDING_CHANGES,
-    JSON.stringify(remaining)
-  );
+  setPendingChanges(remaining);
 
   updateStatusBox();
 
@@ -2703,12 +2829,28 @@ function reapplyPendingArchiveChanges(pending) {
       }
       return;
     }
+
+    // --- Bollature pendenti (non cancellare dalla vista una bollatura offline) ---
+    if (change.type === "ADD_BOLLATURA") {
+      if (!payload.id) return;
+      if (!Array.isArray(dati.bollature)) dati.bollature = [];
+      var bIdx = dati.bollature.findIndex(function (b) { return b.id === payload.id; });
+      if (bIdx >= 0) {
+        dati.bollature[bIdx] = Object.assign({}, dati.bollature[bIdx], payload);
+      } else {
+        dati.bollature.push(Object.assign({}, payload));
+      }
+      return;
+    }
   });
 
   ensureDataShape();
 }
 
 function savePendingChange(change) {
+  const userId = cvlsGetCurrentUserId();
+  if (!userId) return false;
+
   const pending = getPendingChanges();
   const createdAt =
     change && change.createdAt
@@ -2721,20 +2863,68 @@ function savePendingChange(change) {
       change && change.changeId
         ? change.changeId
         : createPendingChangeId(),
-    createdAt: createdAt
+    createdAt: createdAt,
+    owner_user_id: userId
   });
 
-  localStorage.setItem(
-    STORAGE_KEYS.PENDING_CHANGES,
-    JSON.stringify(pending)
-  );
+  setPendingChanges(pending);
+  return true;
+}
 
+function cvlsGetPendingStorageKey(userId) {
+  if (!userId) return "";
+  return STORAGE_KEYS.PRIVATE_PENDING_PREFIX + userId;
+}
+
+function setPendingChanges(changes) {
+  const userId = cvlsGetCurrentUserId();
+  if (!userId) return false;
+  const key = cvlsGetPendingStorageKey(userId);
+  if (!key) return false;
+
+  // Normalizza: assegna owner_user_id ai record che ne sono privi,
+  // poi filtra scartando quelli di altri utenti
+  const normalized = (changes || []).map(function(c) {
+    if (!c) return null;
+    if (!c.owner_user_id) {
+      return Object.assign({}, c, { owner_user_id: userId });
+    }
+    return c;
+  }).filter(function(c) {
+    return c && c.owner_user_id === userId;
+  });
+
+  localStorage.setItem(key, JSON.stringify(normalized));
   updateStatusBox();
+  return true;
 }
 
 function getPendingChanges() {
+  const userId = cvlsGetCurrentUserId();
+  if (!userId) return [];
+  const key = cvlsGetPendingStorageKey(userId);
+  if (!key) return [];
+
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.PENDING_CHANGES)) || [];
+    const raw = localStorage.getItem(key);
+    let parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) parsed = [];
+
+    let modified = false;
+    parsed.forEach(function(c) {
+      if (!c.owner_user_id) {
+        c.owner_user_id = userId;
+        modified = true;
+      }
+    });
+
+    if (modified) {
+      localStorage.setItem(key, JSON.stringify(parsed));
+    }
+
+    return parsed.filter(function(c) {
+      return c && c.owner_user_id === userId;
+    });
   } catch (e) {
     return [];
   }
@@ -2805,7 +2995,7 @@ function addPendingUpdateLinkQR(codiceCompleto, linkQR) {
     });
   }
 
-  localStorage.setItem(STORAGE_KEYS.PENDING_CHANGES, JSON.stringify(pending));
+  setPendingChanges(pending);
   updateStatusBox();
 }
 
@@ -2912,20 +3102,133 @@ function ensureDataShape() {
   dati.reperibilita_interventi = Array.isArray(dati.reperibilita_interventi) ? dati.reperibilita_interventi : [];
 }
 
+function cvlsCreateEmptyPrivateData() {
+  return {
+    bollature: [],
+    oreViaggio: [],
+    reperibilita_periodi: [],
+    reperibilita_interventi: []
+  };
+}
+
+function cvlsExtractPrivateData(source) {
+  const extracted = cvlsCreateEmptyPrivateData();
+  if (source) {
+    CVLS_PRIVATE_DATA_FIELDS.forEach(function(field) {
+      if (Array.isArray(source[field])) extracted[field] = JSON.parse(JSON.stringify(source[field]));
+    });
+  }
+  return extracted;
+}
+
+function cvlsApplyPrivateData(privateData) {
+  if (!privateData) return;
+  CVLS_PRIVATE_DATA_FIELDS.forEach(function(field) {
+    dati[field] = Array.isArray(privateData[field]) ? privateData[field] : [];
+  });
+}
+
+function cvlsClearPrivateDataInMemory() {
+  dati.bollature = [];
+  dati.oreViaggio = [];
+  dati.reperibilita_periodi = [];
+  dati.reperibilita_interventi = [];
+}
+
+function cvlsGetPrivateDataStorageKey(userId) {
+  if (!userId) return "";
+  return STORAGE_KEYS.PRIVATE_DATA_PREFIX + userId;
+}
+
+function cvlsLoadPrivateDataForUser(userId) {
+  const key = cvlsGetPrivateDataStorageKey(userId);
+  if (!key) return;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const privateData = JSON.parse(raw);
+      cvlsApplyPrivateData(privateData);
+    } else {
+      cvlsClearPrivateDataInMemory();
+    }
+  } catch(e) {
+    cvlsClearPrivateDataInMemory();
+  }
+}
+
+function cvlsSavePrivateDataForUser(userId) {
+  const key = cvlsGetPrivateDataStorageKey(userId);
+  if (!key) return;
+  const extracted = cvlsExtractPrivateData(dati);
+  localStorage.setItem(key, JSON.stringify(extracted));
+}
+
 function loadLocalData() {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.DATA));
-    if (saved) dati = saved;
+    const savedRaw = localStorage.getItem(STORAGE_KEYS.DATA);
+    let saved = null;
+    if (savedRaw) saved = JSON.parse(savedRaw);
+
+    if (saved) {
+      // Gestisci ingressoAttivo legacy nel backup prima di rimuoverlo
+      if (saved.ingressoAttivo && !localStorage.getItem(STORAGE_KEYS.LEGACY_ATTENDANCE_BACKUP)) {
+        localStorage.setItem(STORAGE_KEYS.LEGACY_ATTENDANCE_BACKUP, JSON.stringify(saved.ingressoAttivo));
+      }
+      delete saved.ingressoAttivo;
+
+      // Backup e pulizia dei quattro campi privati
+      const hasPersonalData = CVLS_PRIVATE_DATA_FIELDS.some(function(f) { return Array.isArray(saved[f]) && saved[f].length > 0; });
+      if (hasPersonalData && !localStorage.getItem(STORAGE_KEYS.LEGACY_PRIVATE_BACKUP)) {
+        const legacyPrivate = cvlsExtractPrivateData(saved);
+        localStorage.setItem(STORAGE_KEYS.LEGACY_PRIVATE_BACKUP, JSON.stringify(legacyPrivate));
+      }
+      CVLS_PRIVATE_DATA_FIELDS.forEach(function(f) { saved[f] = []; });
+      dati = saved;
+
+      // Salva subito cvls_local_data ripulito dei campi privati
+      localStorage.setItem(STORAGE_KEYS.DATA, JSON.stringify(saved));
+    }
+
+    // Legacy pending: backup e rimozione sempre
+    const legacyPending = localStorage.getItem(STORAGE_KEYS.PENDING_CHANGES);
+    if (legacyPending && legacyPending !== "[]") {
+      if (!localStorage.getItem(STORAGE_KEYS.LEGACY_PENDING_BACKUP)) {
+        localStorage.setItem(STORAGE_KEYS.LEGACY_PENDING_BACKUP, legacyPending);
+      }
+    }
+    localStorage.removeItem(STORAGE_KEYS.PENDING_CHANGES);
+
+    // Legacy attendance: backup e rimozione sempre
+    const legacyAttendance = localStorage.getItem("cvls_attendance_active");
+    if (legacyAttendance) {
+      if (!localStorage.getItem(STORAGE_KEYS.LEGACY_ATTENDANCE_BACKUP)) {
+        localStorage.setItem(STORAGE_KEYS.LEGACY_ATTENDANCE_BACKUP, legacyAttendance);
+      }
+    }
+    localStorage.removeItem("cvls_attendance_active");
+
   } catch (e) {
     dati = createEmptyData();
   }
 
   ensureDataShape();
+  // I dataset privati vengono azzerati e verranno caricati solo dal bootstrap autenticato
+  cvlsClearPrivateDataInMemory();
 }
 
 function saveLocalData() {
   ensureDataShape();
-  localStorage.setItem(STORAGE_KEYS.DATA, JSON.stringify(dati));
+  const userId = cvlsGetCurrentUserId();
+  if (userId) {
+    cvlsSavePrivateDataForUser(userId);
+  }
+  
+  const copy = JSON.parse(JSON.stringify(dati));
+  CVLS_PRIVATE_DATA_FIELDS.forEach(function(field) {
+    copy[field] = [];
+  });
+  
+  localStorage.setItem(STORAGE_KEYS.DATA, JSON.stringify(copy));
   updateStatusBox();
 }
 
@@ -3816,10 +4119,7 @@ function modificaNomePresidio(presidio) {
         }
       });
 
-      localStorage.setItem(
-        STORAGE_KEYS.PENDING_CHANGES,
-        JSON.stringify(pendingInfo.pending)
-      );
+      setPendingChanges(pendingInfo.pending);
 
       saveLocalData();
       updateStatusBox();
@@ -4256,10 +4556,7 @@ function modificaNomeUbicazione(ubicazione) {
         }
       });
 
-      localStorage.setItem(
-        STORAGE_KEYS.PENDING_CHANGES,
-        JSON.stringify(pendingInfo.pending)
-      );
+      setPendingChanges(pendingInfo.pending);
 
       saveLocalData();
       updateStatusBox();
@@ -4631,10 +4928,7 @@ function cvlsRemovePendingChangesWhere(predicate) {
     return !predicate(change);
   });
 
-  localStorage.setItem(
-    STORAGE_KEYS.PENDING_CHANGES,
-    JSON.stringify(filtered)
-  );
+  setPendingChanges(filtered);
 
   updateStatusBox();
 
@@ -4729,10 +5023,7 @@ function modificaNomeCitta(citta) {
 
       pendingInfo.change.updatedAt = new Date().toISOString();
 
-      localStorage.setItem(
-        STORAGE_KEYS.PENDING_CHANGES,
-        JSON.stringify(pendingInfo.pending)
-      );
+      setPendingChanges(pendingInfo.pending);
 
       saveLocalData();
       updateStatusBox();
@@ -5120,10 +5411,7 @@ function modificaNomeDispositivo(dispositivo) {
 
       pendingInfo.change.updatedAt = new Date().toISOString();
 
-      localStorage.setItem(
-        STORAGE_KEYS.PENDING_CHANGES,
-        JSON.stringify(pendingInfo.pending)
-      );
+      setPendingChanges(pendingInfo.pending);
 
       saveLocalData();
       updateStatusBox();
@@ -5764,10 +6052,7 @@ function savePendingDeleteRequestChange(request) {
     });
   }
 
-  localStorage.setItem(
-    STORAGE_KEYS.PENDING_CHANGES,
-    JSON.stringify(pending)
-  );
+  setPendingChanges(pending);
 
   updateStatusBox();
 }
@@ -6999,6 +7284,23 @@ function renderRegistroPresenzeList() {
 
   const pending = getPendingChanges();
 
+  const byDay = {};
+  list.forEach(function (item) {
+    const d = cvlsRegistroDateFromValue(item.orario);
+    if (d) {
+      const k = cvlsRegistroDayKey(d);
+      if (!byDay[k]) byDay[k] = [];
+      byDay[k].push(item);
+    }
+  });
+
+  // Helper per ordinare cronologicamente (il last uscite deve essere cronologicamente corretto)
+  Object.keys(byDay).forEach(function(k) {
+    byDay[k].sort(function(a, b) {
+      return new Date(a.orario).getTime() - new Date(b.orario).getTime();
+    });
+  });
+
   list.forEach(function (b) {
     const isPending = pending.some(function (p) {
       return p.type === "ADD_BOLLATURA" && p.payload && p.payload.id === b.id;
@@ -7018,7 +7320,7 @@ function renderRegistroPresenzeList() {
 
     const isIngresso = (b.tipo_bollatura || "").toLowerCase() === "ingresso";
     const isUscita = (b.tipo_bollatura || "").toLowerCase() === "uscita";
-    
+
     let detailsHtml = "";
     const tecnicoHtml = escapeHtml(b.tecnico || "-");
     const sedeHtml = escapeHtml(b.nome_sede || "-");
@@ -7028,7 +7330,7 @@ function renderRegistroPresenzeList() {
       detailsHtml += '<div>Sede: <strong>' + sedeHtml + '</strong></div>';
     } else if (isUscita) {
       detailsHtml += '<div>Tecnico: <strong>' + tecnicoHtml + '</strong></div>';
-      
+
       const luogoLabels = cvlsGetBollaturaLuogoLabels(b);
       let presidioHtml = "-";
       if (luogoLabels.length > 0) {
@@ -7042,31 +7344,63 @@ function renderRegistroPresenzeList() {
         }
       }
       detailsHtml += '<div>Presidio: <strong>' + presidioHtml + '</strong></div>';
-      
+
       const pausaPranzo = String(
         b.pausa_pranzo ||
         (typeof getRegistroPresenzePranzoById === "function" ? getRegistroPresenzePranzoById(b.id) : "") ||
         "-"
       ).trim();
       detailsHtml += '<div>Pranzo: <strong>' + escapeHtml(pausaPranzo) + '</strong></div>';
-      
-      let totaleOreHtml = "-";
-      const val = b.totale_calcolato_minuti;
-      if (b.totale_calcolato_testo) {
-        totaleOreHtml = escapeHtml(b.totale_calcolato_testo);
-      } else if (val !== null && val !== undefined && val !== "" && Number.isFinite(Number(val))) {
-        totaleOreHtml = escapeHtml(formatRegistroPresenzeListMinutes(val));
+
+      const d = cvlsRegistroDateFromValue(b.orario);
+      const k = d ? cvlsRegistroDayKey(d) : "";
+      const dayItems = k ? (byDay[k] || []) : [];
+      const ingressi = dayItems.filter(function(i) { return (i.tipo_bollatura||"").toLowerCase()==="ingresso"; });
+      const uscite = dayItems.filter(function(i) { return (i.tipo_bollatura||"").toLowerCase()==="uscita"; });
+
+      const firstIngresso = ingressi[0] || null;
+      const lastUscitaForDay = uscite.length > 0 ? uscite[uscite.length - 1] : null;
+
+      const pausaMinuti = lastUscitaForDay ? Math.max(0, Math.round(Number(lastUscitaForDay.pausa_pranzo_minuti) || 0)) : 0;
+
+      let oreViaggioRaw = 0;
+      if (Array.isArray(dati.oreViaggio)) {
+        const match = dati.oreViaggio.find(function(v) { return v.data === k; });
+        if (match) oreViaggioRaw = Number(match.ore_viaggio_minuti) || 0;
       }
+
+      let calcoli = null;
+      if (firstIngresso && lastUscitaForDay) {
+        calcoli = window.CvlsRegistroPresenzeCalcoli.calcolaGiornata({
+          ingresso: firstIngresso.orario,
+          uscita: lastUscitaForDay.orario,
+          pausaMinuti: pausaMinuti,
+          oreViaggioMinuti: oreViaggioRaw
+        });
+      }
+
+      const totaleCalcolatoMinuti = calcoli ? calcoli.totaleNettoMinuti : 0;
+      const viaggioValido = calcoli ? calcoli.oreViaggioMinuti : 0;
+      const straordinarioMinuti = calcoli ? calcoli.straordinarioMinuti : 0;
+
+      const totaleOreHtml = escapeHtml(cvlsMinutesToHourText(totaleCalcolatoMinuti, true) || "-");
+      const viaggioHtml = escapeHtml(cvlsMinutesToHourText(viaggioValido, true)) || "0 min";
+      const straordinarioHtml = escapeHtml(cvlsMinutesToHourText(straordinarioMinuti, true)) || "0 min";
+
       detailsHtml += '<div>Totale ore: <strong>' + totaleOreHtml + '</strong></div>';
+      detailsHtml += '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+                     '<span>Ore viaggio: <strong>' + viaggioHtml + '</strong></span>' +
+                     '<button type="button" class="secondary-btn btn-viaggio" style="margin: 0; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; width: auto;">Modifica</button>' +
+                     '</div>';
+      detailsHtml += '<div>Straordinario: <strong>' + straordinarioHtml + '</strong></div>';
       detailsHtml += '<div>Sede: <strong>' + sedeHtml + '</strong></div>';
-      
-      detailsHtml += '<div style="margin-top: 10px;"><button type="button" class="secondary-btn btn-viaggio" style="margin: 0; padding: 8px; width: 100%; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;">Gestisci ore viaggio</button></div>';
+
     } else {
       detailsHtml += '<div>Tecnico: <strong>' + tecnicoHtml + '</strong></div>';
       detailsHtml += '<div>Sede: <strong>' + sedeHtml + '</strong></div>';
     }
 
-    card.innerHTML = 
+    card.innerHTML =
       '<div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 6px;">' +
         '<span style="color: ' + tipoColor + '">' + tipoText + '</span>' +
         '<span style="color: #374151;">' + formattedTime + '</span>' +
@@ -7084,7 +7418,7 @@ function renderRegistroPresenzeList() {
           const dateObj = cvlsRegistroDateFromValue(b.orario);
           if (!dateObj) return;
           const dayKey = cvlsRegistroDayKey(dateObj);
-          
+
           let minutiCorrenti = 0;
           if (Array.isArray(dati.oreViaggio)) {
             const currentObj = dati.oreViaggio.find(function (ov) {
@@ -7097,7 +7431,7 @@ function renderRegistroPresenzeList() {
               }
             }
           }
-          
+
           if (window.CvlsReperibilita && typeof window.CvlsReperibilita.openViaggioDialog === "function") {
              window.CvlsReperibilita.openViaggioDialog(dayKey, minutiCorrenti);
           }
@@ -9291,10 +9625,7 @@ function modificaManutenzione(originalIndex) {
 
       pendingInfo.change.updatedAt = new Date().toISOString();
 
-      localStorage.setItem(
-        STORAGE_KEYS.PENDING_CHANGES,
-        JSON.stringify(pendingInfo.pending)
-      );
+      setPendingChanges(pendingInfo.pending);
 
       overlay.remove();
 
@@ -10131,10 +10462,7 @@ function modificaNota(originalIndex) {
 
       pendingInfo.change.updatedAt = new Date().toISOString();
 
-      localStorage.setItem(
-        STORAGE_KEYS.PENDING_CHANGES,
-        JSON.stringify(pendingInfo.pending)
-      );
+      setPendingChanges(pendingInfo.pending);
 
       overlay.remove();
 
@@ -10185,10 +10513,7 @@ function eliminaNotaNonSincronizzata(originalIndex) {
 
       pendingInfo.pending.splice(pendingInfo.index, 1);
 
-      localStorage.setItem(
-        STORAGE_KEYS.PENDING_CHANGES,
-        JSON.stringify(pendingInfo.pending)
-      );
+      setPendingChanges(pendingInfo.pending);
 
       saveLocalData();
       updateStatusBox();
@@ -10685,10 +11010,7 @@ function modificaMateriale(originalIndex) {
 
       pendingInfo.change.updatedAt = new Date().toISOString();
 
-      localStorage.setItem(
-        STORAGE_KEYS.PENDING_CHANGES,
-        JSON.stringify(pendingInfo.pending)
-      );
+      setPendingChanges(pendingInfo.pending);
 
       overlay.remove();
 
@@ -10739,10 +11061,7 @@ function eliminaMaterialeNonSincronizzato(originalIndex) {
 
       pendingInfo.pending.splice(pendingInfo.index, 1);
 
-      localStorage.setItem(
-        STORAGE_KEYS.PENDING_CHANGES,
-        JSON.stringify(pendingInfo.pending)
-      );
+      setPendingChanges(pendingInfo.pending);
 
       saveLocalData();
       updateStatusBox();
@@ -11141,10 +11460,7 @@ function preparePendingChangesForSync() {
   });
 
   if (pendingChanged) {
-    localStorage.setItem(
-      STORAGE_KEYS.PENDING_CHANGES,
-      JSON.stringify(pending)
-    );
+    setPendingChanges(pending);
   }
 
   if (localDataChanged) {
@@ -11169,10 +11485,7 @@ function removePendingAttachmentBySyncId(syncId) {
     );
   });
 
-  localStorage.setItem(
-    STORAGE_KEYS.PENDING_CHANGES,
-    JSON.stringify(remaining)
-  );
+  setPendingChanges(remaining);
 
   updateStatusBox();
 }
@@ -11454,10 +11767,7 @@ function pulisciRichiesteEliminazioneAllegatoSenzaLink() {
   });
 
   if (puliti.length !== pending.length) {
-    localStorage.setItem(
-      STORAGE_KEYS.PENDING_CHANGES,
-      JSON.stringify(puliti)
-    );
+    setPendingChanges(puliti);
 
     showCvlsToast(
       "Pulita richiesta allegato non valida. Ripeti la richiesta."
@@ -11553,10 +11863,7 @@ function modificaAllegato(originalIndex) {
 
       pendingInfo.change.updatedAt = new Date().toISOString();
 
-      localStorage.setItem(
-        STORAGE_KEYS.PENDING_CHANGES,
-        JSON.stringify(pendingInfo.pending)
-      );
+      setPendingChanges(pendingInfo.pending);
 
       saveLocalData();
       updateStatusBox();
@@ -11609,10 +11916,7 @@ function eliminaAllegatoNonSincronizzato(index) {
       } else if (pendingInfo.index >= 0) {
         pendingInfo.pending.splice(pendingInfo.index, 1);
 
-        localStorage.setItem(
-          STORAGE_KEYS.PENDING_CHANGES,
-          JSON.stringify(pendingInfo.pending)
-        );
+        setPendingChanges(pendingInfo.pending);
       }
 
       if (
@@ -13082,10 +13386,7 @@ function savePendingProgrammazioneCvlsO2(item) {
     });
   }
 
-  localStorage.setItem(
-    STORAGE_KEYS.PENDING_CHANGES,
-    JSON.stringify(pending)
-  );
+  setPendingChanges(pending);
 
   updateStatusBox();
 }
@@ -14658,20 +14959,20 @@ let adminTechniciansCache = [];
 async function loadAndRenderAdminTechList() {
   const container = document.getElementById("adminTechList");
   if (!container) return;
-  
+
   container.innerHTML = '<div style="text-align: center; color: #9ca3af; padding: 20px;">Caricamento dipendenti...</div>';
-  
+
   try {
     const list = await window.CvlsSupabase.getAllTechnicians();
     adminTechniciansCache = list;
-    
+
     container.innerHTML = "";
-    
+
     if (list.length === 0) {
       container.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 20px;">Nessun tecnico trovato nel database.</div>';
       return;
     }
-    
+
     list.forEach(tech => {
       const card = document.createElement("div");
       card.className = "cvls-bollatura-card";
@@ -14683,12 +14984,12 @@ async function loadAndRenderAdminTechList() {
       card.style.flexDirection = "column";
       card.style.gap = "8px";
       card.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)";
-      
+
       const nomeSede = tech.bollatura_nome_sede || "Ozegna (Sede)";
       const lat = tech.bollatura_latitudine !== null && tech.bollatura_latitudine !== undefined ? tech.bollatura_latitudine : 45.3496;
       const lon = tech.bollatura_longitudine !== null && tech.bollatura_longitudine !== undefined ? tech.bollatura_longitudine : 7.7470;
       const raggio = tech.bollatura_raggio !== null && tech.bollatura_raggio !== undefined ? tech.bollatura_raggio : 200;
-      
+
       card.innerHTML = `
         <div style="font-weight: bold; font-size: 16px; color: #111827;">${tech.nome_tecnico}</div>
         <div style="font-size: 14px; color: #4b5563; line-height: 1.4;">
@@ -14700,10 +15001,10 @@ async function loadAndRenderAdminTechList() {
           Modifica Sede/Trasferta
         </button>
       `;
-      
+
       const btn = card.querySelector(".edit-tech-loc-btn");
       btn.onclick = () => openEditTechLocation(tech);
-      
+
       container.appendChild(card);
     });
   } catch (error) {
@@ -14718,7 +15019,7 @@ function openEditTechLocation(tech) {
   document.getElementById("editTechLocLat").value = tech.bollatura_latitudine !== null && tech.bollatura_latitudine !== undefined ? tech.bollatura_latitudine : 45.3496;
   document.getElementById("editTechLocLon").value = tech.bollatura_longitudine !== null && tech.bollatura_longitudine !== undefined ? tech.bollatura_longitudine : 7.7470;
   document.getElementById("editTechLocRadius").value = tech.bollatura_raggio !== null && tech.bollatura_raggio !== undefined ? tech.bollatura_raggio : 200;
-  
+
   // Resetta i campi di ricerca indirizzo
   document.getElementById("editTechSearchAddr").value = "";
   const suggestionsBox = document.getElementById("addrSuggestions");
@@ -14726,7 +15027,7 @@ function openEditTechLocation(tech) {
     suggestionsBox.innerHTML = "";
     suggestionsBox.style.display = "none";
   }
-  
+
   document.getElementById("editTechLocationModal").classList.add("show");
 }
 
@@ -14740,21 +15041,21 @@ async function saveTechLocation() {
   const latRaw = document.getElementById("editTechLocLat").value;
   const lonRaw = document.getElementById("editTechLocLon").value;
   const radiusRaw = document.getElementById("editTechLocRadius").value;
-  
+
   if (!name) {
     alert("Inserisci un nome per la sede o trasferta.");
     return;
   }
-  
+
   const lat = parseFloat(latRaw);
   const lon = parseFloat(lonRaw);
   const radius = parseFloat(radiusRaw);
-  
+
   if (isNaN(lat) || isNaN(lon) || isNaN(radius)) {
     alert("Inserisci valori numerici validi per coordinate e raggio.");
     return;
   }
-  
+
   try {
     await window.CvlsSupabase.updateTechnicianLocation(userId, name, lat, lon, radius);
     closeEditTechLocation();
@@ -14772,13 +15073,13 @@ async function handleTechSearchAddressInput(e) {
   const query = e.target.value.trim();
   const suggestionsBox = document.getElementById("addrSuggestions");
   if (!suggestionsBox) return;
-  
+
   if (query.length < 3) {
     suggestionsBox.innerHTML = "";
     suggestionsBox.style.display = "none";
     return;
   }
-  
+
   clearTimeout(searchAddrTimeout);
   searchAddrTimeout = setTimeout(async () => {
     try {
@@ -14788,7 +15089,7 @@ async function handleTechSearchAddressInput(e) {
         }
       });
       const data = await response.json();
-      
+
       suggestionsBox.innerHTML = "";
       if (data && data.length > 0) {
         suggestionsBox.style.display = "block";
@@ -14800,22 +15101,22 @@ async function handleTechSearchAddressInput(e) {
           div.style.fontSize = "13px";
           div.style.color = "#1f2937";
           div.style.background = "#ffffff";
-          
+
           div.textContent = item.display_name;
-          
+
           div.onclick = () => {
             const parts = item.display_name.split(",");
             const shortName = (parts[0] + (parts[1] ? ", " + parts[1] : "")).trim();
-            
+
             document.getElementById("editTechLocName").value = shortName;
             document.getElementById("editTechLocLat").value = parseFloat(item.lat).toFixed(6);
             document.getElementById("editTechLocLon").value = parseFloat(item.lon).toFixed(6);
-            
+
             document.getElementById("editTechSearchAddr").value = shortName;
             suggestionsBox.innerHTML = "";
             suggestionsBox.style.display = "none";
           };
-          
+
           suggestionsBox.appendChild(div);
         });
       } else {
@@ -14830,13 +15131,13 @@ async function handleTechSearchAddressInput(e) {
 function renderAdminCantieriList() {
   const container = document.getElementById("adminCantieriList");
   if (!container) return;
-  
+
   const list = dati.cantieri || [];
   if (list.length === 0) {
     container.innerHTML = '<div style="text-align: center; color: #9ca3af; padding: 10px; font-size: 13px;">Nessun cantiere caricato.</div>';
     return;
   }
-  
+
   container.innerHTML = "";
   list.forEach(cantiere => {
     const row = document.createElement("div");
@@ -14850,7 +15151,7 @@ function renderAdminCantieriList() {
     row.style.fontSize = "13px";
     row.style.color = "#1f2937";
     row.style.boxShadow = "0 1px 2px rgba(0,0,0,0.02)";
-    
+
     row.innerHTML = `
       <span style="font-weight: 500;">${cantiere.nome || cantiere.Nome}</span>
     `;
@@ -14866,37 +15167,37 @@ async function adminAddCantiere() {
     cvlsAlert("Inserisci il nome del cantiere.", "Campo vuoto");
     return;
   }
-  
+
   // Controlla se esiste già
   const esiste = (dati.cantieri || []).some(c => (c.nome || c.Nome || "").toLowerCase() === name.toLowerCase());
   if (esiste) {
     cvlsAlert("Questo cantiere esiste già.", "Duplicato");
     return;
   }
-  
+
   // Aggiungi a dati.cantieri e salva pendente
   const newCantiere = {
     nome: name,
     created_by: localStorage.getItem("cvls_user_name") || "Admin"
   };
-  
+
   if (!dati.cantieri) dati.cantieri = [];
   dati.cantieri.push(newCantiere);
   saveLocalData();
-  
+
   savePendingChange({
     type: "ADD_CANTIERE",
     payload: newCantiere
   });
-  
+
   input.value = "";
-  
+
   // Renderizza la lista aggiornata
   renderAdminCantieriList();
-  
+
   // Avvia sincronizzazione automatica in background
   syncApp();
-  
+
   cvlsAlert(`Cantiere "${name}" aggiunto e in fase di sincronizzazione!`, "Cantiere Aggiunto");
 }
 

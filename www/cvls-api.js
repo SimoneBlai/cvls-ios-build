@@ -422,15 +422,24 @@ async function applyPendingChangeToSupabase(change) {
         const { error } = await supabase.from('reperibilita_interventi')
             .delete()
             .eq('id', localId)
-
             .eq('user_id', userId);
         if (error) throw error;
     }
 }
 
 // Scarica l'intero database da Supabase e lo formatta come si aspetta l'app
-async function fetchCompleteDatabaseFromSupabase() {
+async function fetchCompleteDatabaseFromSupabase(expectedUserId) {
     const supabase = window.supabaseClient;
+
+    // Verifica identità pre-download
+    const { data: { user: userPre } } = await supabase.auth.getUser();
+    if (!userPre) {
+        throw new Error("Utente non autenticato durante il download dei dati");
+    }
+    if (expectedUserId && userPre.id !== expectedUserId) {
+        throw new Error("Disallineamento utente durante il download dei dati");
+    }
+    const userId = userPre.id;
 
     // Eseguiamo query in parallelo per velocizzare
     const [
@@ -451,6 +460,7 @@ async function fetchCompleteDatabaseFromSupabase() {
         { data: cantiere_materiali },
         { data: spese },
         { data: richieste_modifica },
+        // TODO FASE 2: filtrare anche bollature per user_id dopo migrazione schema
         { data: bollature },
         res_registro_giornaliero,
         res_reperibilita_periodi,
@@ -477,10 +487,28 @@ async function fetchCompleteDatabaseFromSupabase() {
             .select('*')
             .eq('tecnico', String(localStorage.getItem("cvls_user_name") || "").trim())
             .order('orario', { ascending: false }),
-        supabase.from('registro_giornaliero').select('*').order('data', { ascending: false }),
-        supabase.from('reperibilita_periodi').select('*').order('data_inizio', { ascending: false }),
-        supabase.from('reperibilita_interventi').select('*').order('data', { ascending: false })
+        supabase.from('registro_giornaliero')
+            .select('*')
+            .eq('user_id', userId)
+            .order('data', { ascending: false }),
+        supabase.from('reperibilita_periodi')
+            .select('*')
+            .eq('user_id', userId)
+            .order('data_inizio', { ascending: false }),
+        supabase.from('reperibilita_interventi')
+            .select('*')
+            .eq('user_id', userId)
+            .order('data', { ascending: false })
     ]);
+
+    // Verifica identità post-query
+    const { data: { user: userPost } } = await supabase.auth.getUser();
+    if (!userPost || userPost.id !== userId) {
+        throw new Error("Identità utente cambiata durante il download dei dati");
+    }
+    if (expectedUserId && userPost.id !== expectedUserId) {
+        throw new Error("Disallineamento utente dopo il download dei dati");
+    }
 
     if (res_registro_giornaliero.error) throw res_registro_giornaliero.error;
     if (res_reperibilita_periodi.error) throw res_reperibilita_periodi.error;
