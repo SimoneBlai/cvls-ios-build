@@ -585,7 +585,8 @@ window.CvlsGeobollatura = (function () {
             totale_calcolato_testo: info.totaleCalcolatoTesto || null,
             ore_permesso_minuti: info.orePermessoMinuti ?? null,
             ore_permesso_testo: info.orePermessoTesto || null,
-            regola_calcolo: info.regolaCalcolo || null
+            regola_calcolo: info.regolaCalcolo || null,
+            diritto_pranzo: typeof info.diritto_pranzo === "boolean" ? info.diritto_pranzo : undefined
         };
 
         // Salva localmente in dati.bollature per eventuale storico
@@ -613,11 +614,12 @@ window.CvlsGeobollatura = (function () {
                 longitudine: bollaturaRecord.longitudine,
                 stato_gps: bollaturaRecord.stato_gps,
                 nome_sede: bollaturaRecord.nome_sede,
-                cantiere_nome: info.cantiereNome || null,
-                citta_nome: info.cittaNome || null,
+                cantiere_nome: bollaturaRecord.cantiere_nome,
+                citta_nome: bollaturaRecord.citta_nome,
                 luoghi: bollaturaRecord.luoghi,
                 pausa_pranzo: bollaturaRecord.pausa_pranzo,
                 pausa_pranzo_minuti: bollaturaRecord.pausa_pranzo_minuti,
+                diritto_pranzo: bollaturaRecord.diritto_pranzo,
                 durata_lorda_minuti: bollaturaRecord.durata_lorda_minuti,
                 totale_lavorato_minuti: bollaturaRecord.totale_lavorato_minuti,
                 totale_lavorato_testo: bollaturaRecord.totale_lavorato_testo,
@@ -886,6 +888,14 @@ window.CvlsGeobollatura = (function () {
             return;
         }
 
+        const radioSi = document.getElementById("regPresDirittoPranzoSi");
+        const radioNo = document.getElementById("regPresDirittoPranzoNo");
+        if (!radioSi.checked && !radioNo.checked) {
+            cvlsAlert("Indica se hai diritto al pranzo.", "Diritto Pranzo");
+            return;
+        }
+        const dirittoPranzo = radioSi.checked;
+
         const selectedNames = getRegistroPresenzeSelectedNames(
             activeCheckin.cittaNome || null,
             activeCheckin.cantiereNome || null,
@@ -936,6 +946,7 @@ window.CvlsGeobollatura = (function () {
             cantiereNome: selectedUbicazioneName,
             luoghi: selectedNames.luoghi,
             pausaPranzo: pausaPranzo,
+            diritto_pranzo: dirittoPranzo,
             pausaPranzoMinuti: totali.pausaPranzoMinuti,
             durataLordaMinuti: totali.durataLordaMinuti,
             totaleLavoratoMinuti: totali.totaleLavoratoMinuti,
@@ -980,6 +991,12 @@ window.CvlsGeobollatura = (function () {
         updatePageUI();
     }
 
+    function updateActiveCheckin(data) {
+        if (!data || typeof data !== "object") return false;
+        setActiveAttendance(data);
+        return true;
+    }
+
     return {
         init: init,
         cleanup: cleanup,
@@ -989,7 +1006,8 @@ window.CvlsGeobollatura = (function () {
         updatePageUI: updatePageUI,
         registraIngressoRegistroPresenze: registraIngressoRegistroPresenze,
         registraUscitaRegistroPresenze: registraUscitaRegistroPresenze,
-        getActiveCheckin: getActiveCheckin
+        getActiveCheckin: getActiveCheckin,
+        updateActiveCheckin: updateActiveCheckin
     };
 })();
 

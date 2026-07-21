@@ -182,24 +182,30 @@ window.CvlsReperibilita = (function () {
   function calcolaSettimanePerMese(year, monthIndex) {
     var count = 0;
     var periodi = getPeriodi();
+    var monthStart = new Date(year, monthIndex, 1);
+    var monthEnd = new Date(year, monthIndex + 1, 0);
+
+    function giorniInclusivi(start, end) {
+      var startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+      var endUtc = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+      return Math.floor((endUtc - startUtc) / 86400000) + 1;
+    }
 
     periodi.forEach(function (p) {
       var start = parseDate(p.data_inizio);
       var end   = parseDate(p.data_fine);
-      if (!start || !end) return;
+      if (!start || !end || end < start) return;
 
       var cur = new Date(start.getTime());
       while (cur <= end) {
         var weekEnd = addDays(cur, 6);
+        if (weekEnd > end) weekEnd = new Date(end.getTime());
 
-        var giorniNelMese = 0;
-        var d = new Date(cur.getTime());
-        while (d <= weekEnd) {
-          if (d.getFullYear() === year && d.getMonth() === monthIndex) {
-            giorniNelMese++;
-          }
-          d = addDays(d, 1);
-        }
+        var overlapStart = cur > monthStart ? cur : monthStart;
+        var overlapEnd = weekEnd < monthEnd ? weekEnd : monthEnd;
+        var giorniNelMese = overlapStart <= overlapEnd
+          ? giorniInclusivi(overlapStart, overlapEnd)
+          : 0;
 
         if (giorniNelMese >= 4) {
           count++;
@@ -396,11 +402,17 @@ window.CvlsReperibilita = (function () {
      ------------------------------------------------------- */
 
   function renderBoxReperibilita() {
-    var periodi    = getPeriodi();
-    var interventi = getInterventi();
+    var oggi = new Date();
+    var primoGiornoMese = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
+    var ultimoGiornoMese = new Date(oggi.getFullYear(), oggi.getMonth() + 1, 0);
 
-    _renderPeriodi(periodi, "cvlsRepPeriodiList", "Nessun periodo registrato");
-    _renderInterventi(interventi, "cvlsRepInterventiList", "Nessun intervento registrato");
+    var periodi = getPeriodi().filter(function (p) {
+      var inizio = parseDate(p && p.data_inizio);
+      var fine = parseDate(p && p.data_fine);
+      return inizio && fine && inizio <= ultimoGiornoMese && fine >= primoGiornoMese;
+    });
+
+    _renderPeriodi(periodi, "cvlsRepPeriodiList", "Nessun periodo nel mese corrente");
   }
 
   function _renderPeriodi(periodi, containerId, emptyMsg) {

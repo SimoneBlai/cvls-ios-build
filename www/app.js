@@ -3222,12 +3222,12 @@ function saveLocalData() {
   if (userId) {
     cvlsSavePrivateDataForUser(userId);
   }
-  
+
   const copy = JSON.parse(JSON.stringify(dati));
   CVLS_PRIVATE_DATA_FIELDS.forEach(function(field) {
     copy[field] = [];
   });
-  
+
   localStorage.setItem(STORAGE_KEYS.DATA, JSON.stringify(copy));
   updateStatusBox();
 }
@@ -6556,6 +6556,11 @@ function resetRegistroPresenzePranzoSelection() {
     input.checked = false;
   });
 
+  const radioSi = document.getElementById("regPresDirittoPranzoSi");
+  const radioNo = document.getElementById("regPresDirittoPranzoNo");
+  if (radioSi) radioSi.checked = false;
+  if (radioNo) radioNo.checked = false;
+
   updateRegistroPresenzePranzoUI();
 }
 
@@ -6915,7 +6920,9 @@ function initRegistroPresenzeLuogoSearch() {
     active.cantiereNome = names.cantiereNome;
     active.luoghi = names.luoghi;
 
-    localStorage.setItem("cvls_attendance_active", JSON.stringify(active));
+    if (window.CvlsGeobollatura && typeof window.CvlsGeobollatura.updateActiveCheckin === "function") {
+      window.CvlsGeobollatura.updateActiveCheckin(active);
+    }
   }
 
   function clearSuggestions(container) {
@@ -7496,7 +7503,7 @@ function cvlsGetRegistroMeseLabel(year, monthIndex) {
     month: "long"
   });
 
-  return month.charAt(0).toUpperCase() + month.slice(1) + " " + year;
+  return month.charAt(0).toUpperCase() + month.slice(1);
 }
 
 function cvlsMinutesToHourText(minutes, emptyIfZero) {
@@ -7541,24 +7548,78 @@ function cvlsGetBollaturaLuogoLabels(bollatura) {
   }).filter(Boolean);
 }
 
+function cvlsResolveLuogoName(obj, globalDati) {
+  let citta = String(obj.NomeCitta || obj.nome_citta || obj.citta_nome || "").trim();
+  let presidio = String(obj.NomePresidio || obj.nome_presidio || obj.nome_sede || "").trim();
+  let ubicazione = String(obj.NomeUbicazione || obj.nome_ubicazione || "").trim();
+
+  let codC = String(obj.CodiceCitta || obj.codice_citta || obj.id || "").trim();
+  if (!citta && codC && typeof globalDati !== "undefined" && Array.isArray(globalDati.citta)) {
+    const cMatch = globalDati.citta.find(function(c) {
+      return String(c.CodiceCitta || c.codice_citta || c.id) === codC;
+    });
+    if (cMatch) citta = String(cMatch.NomeCitta || cMatch.nome_citta || cMatch.nome || "").trim();
+  }
+
+  let codP = String(obj.CodicePresidio || obj.codice_presidio || obj.id || "").trim();
+  if (!presidio && codP && typeof globalDati !== "undefined" && Array.isArray(globalDati.presidi)) {
+    const pMatch = globalDati.presidi.find(function(p) {
+      let matchC = codC ? String(p.CodiceCitta || p.codice_citta || "") === codC : true;
+      return matchC && String(p.CodicePresidio || p.codice_presidio || p.id) === codP;
+    });
+    if (pMatch) presidio = String(pMatch.NomePresidio || pMatch.nome_presidio || pMatch.nome || "").trim();
+  }
+
+  let codU = String(obj.CodiceUbicazione || obj.codice_ubicazione || obj.id || "").trim();
+  if (!ubicazione && codU && typeof globalDati !== "undefined" && Array.isArray(globalDati.ubicazioni)) {
+    const uMatch = globalDati.ubicazioni.find(function(u) {
+      let matchC = codC ? String(u.CodiceCitta || u.codice_citta || "") === codC : true;
+      let matchP = codP ? String(u.CodicePresidio || u.codice_presidio || "") === codP : true;
+      return matchC && matchP && String(u.CodiceUbicazione || u.codice_ubicazione || u.id) === codU;
+    });
+    if (uMatch) ubicazione = String(uMatch.NomeUbicazione || uMatch.nome_ubicazione || uMatch.nome || "").trim();
+  }
+
+  return { citta, presidio, ubicazione };
+}
+
 function cvlsGetBollaturaLuogoText(bollatura) {
   if (!bollatura) {
     return "";
   }
 
-  const labels = cvlsGetBollaturaLuogoLabels(bollatura);
-  if (labels.length > 0) {
-    return cvlsUniqueJoin(labels, " / ");
+  // 1. Usa l'array strutturato 'luoghi' se disponibile
+  const luoghiArray = cvlsGetBollaturaLuoghiArray(bollatura);
+  if (luoghiArray.length > 0) {
+    const labels = luoghiArray.map(function(luogo) {
+      const resolved = cvlsResolveLuogoName(luogo, typeof dati !== "undefined" ? dati : undefined);
+      let citta = resolved.citta;
+      let presidio = resolved.presidio || String(luogo.presidio || "").trim();
+      let ubicazione = resolved.ubicazione || String(luogo.ubicazione || "").trim();
+
+      let res = "";
+      if (citta) res += citta;
+      if (presidio && presidio !== citta) res += (res ? " - " : "") + presidio;
+      if (ubicazione) res += (res ? " - " : "") + ubicazione;
+
+      return res || presidio || ubicazione;
+    }).filter(Boolean);
+
+    if (labels.length > 0) {
+      return cvlsUniqueJoin(labels, " / ");
+    }
   }
 
-  const presidio = String(bollatura.citta_nome || "").trim();
-  const ubicazione = String(bollatura.cantiere_nome || "").trim();
+  // 2. Fallback ai dati base della bollatura
+  const citta = String(bollatura.citta_nome || "").trim();
+  const cantiere = String(bollatura.cantiere_nome || "").trim();
+  const sedeFallback = String(bollatura.nome_sede || "").trim();
 
-  if (presidio && ubicazione) {
-    return presidio + " - " + ubicazione;
+  if (citta && cantiere) {
+    return citta + " - " + cantiere;
   }
 
-  return presidio || ubicazione || "";
+  return citta || cantiere || sedeFallback || "";
 }
 
 function cvlsUniqueJoin(values, separator) {
@@ -7732,7 +7793,7 @@ function cvlsBuildFoglioOreMensileData() {
   let totaleStraordinarioMinuti = 0;
   let totaleViaggioMinuti = 0;
   let totaleReperibilitaMinuti = 0;
-  let totalePranzoMinuti = 0;
+  let totalePranzi = 0;
   let settimaneReperibilita = 0;
 
   // Dati reperibilità e ore viaggio per il mese
@@ -7766,6 +7827,16 @@ function cvlsBuildFoglioOreMensileData() {
       }),
       ", "
     );
+
+    let dirittoPranzo = false;
+    if (lastUscita && lastUscita.raw) {
+      if (typeof lastUscita.raw.diritto_pranzo === 'boolean') {
+        dirittoPranzo = lastUscita.raw.diritto_pranzo;
+      } else if (lastUscita.raw.pausa_pranzo) {
+        dirittoPranzo = ["1 ora", "1/2 ora", "Continuato"].includes(lastUscita.raw.pausa_pranzo);
+      }
+    }
+    if (dirittoPranzo) totalePranzi++;
 
     const pranzoMinuti = lastUscita
       ? Math.max(
@@ -7824,9 +7895,13 @@ function cvlsBuildFoglioOreMensileData() {
     totaleGiornalieroMinuti += totaleCalcolatoMinuti;
     totalePermessoMinuti += permessoMinuti;
     totaleStraordinarioMinuti += straordinarioMinuti;
-    totalePranzoMinuti += pranzoMinuti;
 
-    rows.push({
+    let interventiGiorno = [];
+    if (typeof dati !== 'undefined' && dati && Array.isArray(dati.reperibilita_interventi)) {
+      interventiGiorno = dati.reperibilita_interventi.filter(function(v) { return v.data === dayKey; });
+    }
+
+    const rigaOrdinaria = {
       giorno: cvlsFormatRegistroDayLabel(currentDate),
       dataISO: dayKey,
       luogo: luoghi,
@@ -7841,11 +7916,60 @@ function cvlsBuildFoglioOreMensileData() {
       oreViaggioMinuti: viaggioValido,
       oreViaggio: cvlsMinutesToHourText(viaggioValido, true),
       reperibilita: repData && repData.giorniReperibilita && repData.giorniReperibilita.has(dayKey) ? "R" : "",
-      oreReperibilitaMinuti: repData ? (repData.oreReperibilitaPerGiorno[dayKey] || 0) : 0,
-      oreReperibilita: repData ? cvlsMinutesToHourText(repData.oreReperibilitaPerGiorno[dayKey] || 0, true) : "",
+      oreReperibilitaMinuti: interventiGiorno.length > 0 ? 0 : (repData ? (repData.oreReperibilitaPerGiorno[dayKey] || 0) : 0),
+      oreReperibilita: interventiGiorno.length > 0 ? "" : (repData ? cvlsMinutesToHourText(repData.oreReperibilitaPerGiorno[dayKey] || 0, true) : ""),
       pranzoMinuti: pranzoMinuti,
       pranzo: pranzoLabels,
       note: note.join("; ")
+    };
+
+    const hasPresenza = dayItems.length > 0;
+    if (hasPresenza || interventiGiorno.length === 0) {
+      rows.push(rigaOrdinaria);
+    }
+
+    interventiGiorno.forEach(function(intv) {
+      const durataIntervento = Math.max(0, Number(intv.durata_minuti ?? intv.minuti) || 0);
+
+      const resolved = cvlsResolveLuogoName(intv, typeof dati !== "undefined" ? dati : undefined);
+      let citta = resolved.citta;
+      let presidio = resolved.presidio;
+      let ubicazione = resolved.ubicazione;
+
+      let intvLuogo = "";
+      if (citta) intvLuogo += citta;
+      if (presidio && presidio !== citta) intvLuogo += (intvLuogo ? " - " : "") + presidio;
+      if (ubicazione) intvLuogo += (intvLuogo ? " - " : "") + ubicazione;
+
+      if (!intvLuogo) {
+        let fallback = intv.luogo || intv.cantiere_nome || intv.citta_nome || "";
+        if (intv.citta_nome && intv.cantiere_nome && intv.citta_nome !== intv.cantiere_nome) {
+            fallback = intv.citta_nome + " - " + intv.cantiere_nome;
+        }
+        intvLuogo = fallback;
+      }
+
+      rows.push({
+        giorno: cvlsFormatRegistroDayLabel(currentDate),
+        dataISO: dayKey,
+        luogo: intvLuogo,
+        ingresso: "",
+        uscita: "",
+        totaleGiornoMinuti: 0,
+        totaleGiorno: "",
+        orePermessoMinuti: 0,
+        orePermesso: "",
+        oreStraordinarioMinuti: 0,
+        oreStraordinario: "",
+        oreViaggioMinuti: 0,
+        oreViaggio: "",
+        reperibilita: "",
+        oreReperibilitaMinuti: durataIntervento,
+        oreReperibilita: cvlsMinutesToHourText(durataIntervento, true),
+        pranzoMinuti: 0,
+        pranzo: "",
+        note: intv.numero_rit ? "RIT " + intv.numero_rit : (intv.note || intv.rit || "Intervento reperibilità")
+      });
     });
   }
 
@@ -7876,8 +8000,8 @@ function cvlsBuildFoglioOreMensileData() {
       settimaneReperibilita: settimaneReperibilita,
       totaleReperibilitaMinuti: totaleReperibilitaMinuti,
       totaleReperibilita: cvlsMinutesToHourText(totaleReperibilitaMinuti, false),
-      totalePranzoMinuti: totalePranzoMinuti,
-      totalePranzo: cvlsMinutesToHourText(totalePranzoMinuti, false)
+      totalePranzi: totalePranzi,
+      totalePranzo: String(totalePranzi)
     }
   };
 }
@@ -8173,6 +8297,33 @@ function cvlsPdfClipText(value, maxLength) {
   return text.slice(0, Math.max(0, maxLength - 3)).trim() + "...";
 }
 
+function cvlsPdfWrapText(value, maxChars) {
+  const text = cvlsPdfAsciiText(value).trim();
+  if (!text) return [];
+  if (!maxChars || text.length <= maxChars) return [text];
+
+  const lines = [];
+  let currentLine = "";
+  const words = text.split(/\s+/);
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    if (!currentLine) {
+      currentLine = word;
+    } else if (currentLine.length + 1 + word.length <= maxChars) {
+      currentLine += " " + word;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines;
+}
+
 function cvlsBuildFoglioOreMensilePdfBytes(data) {
   const pageWidth = 842;
   const pageHeight = 595;
@@ -8181,24 +8332,29 @@ function cvlsBuildFoglioOreMensilePdfBytes(data) {
   const titleY = 566;
   const headerY = 540;
   const tableTop = 520;
-  const rowHeight = 10.9;
+
+  const minRowHeight = 10.9;
+  const padding = 2;
+  const lineHeight = 6;
 
   const columns = [
     { key: "giorno", label: "Giorno", width: 34, max: 5, align: "center" },
-    { key: "luogo", label: "Luogo", width: 140, max: 25, align: "left" },
-    { key: "ingresso", label: "Ingresso", width: 50, max: 8, align: "center" },
-    { key: "uscita", label: "Uscita", width: 50, max: 8, align: "center" },
-    { key: "totaleGiorno", label: "Tot ore", width: 60, max: 10, align: "center" },
-    { key: "orePermesso", label: "Permesso", width: 60, max: 10, align: "center" },
-    { key: "oreViaggio", label: "Viaggio", width: 50, max: 9, align: "center" },
-    { key: "oreStraordinario", label: "Straord.", width: 60, max: 10, align: "center" },
-    { key: "reperibilita", label: "Rep.", width: 40, max: 5, align: "center" },
-    { key: "oreReperibilita", label: "Ore rep.", width: 55, max: 10, align: "center" },
-    { key: "pranzo", label: "Pranzo", width: 45, max: 8, align: "center" },
-    { key: "note", label: "Note", width: 170, max: 31, align: "left" }
+    { key: "luogo", label: "Luogo", width: 250, max: 68, align: "left" },
+    { key: "ingresso", label: "Ingresso", width: 40, max: 8, align: "center" },
+    { key: "uscita", label: "Uscita", width: 40, max: 8, align: "center" },
+    { key: "totaleGiorno", label: "Tot ore", width: 44, max: 10, align: "center" },
+    { key: "orePermesso", label: "Permesso", width: 44, max: 10, align: "center" },
+    { key: "oreViaggio", label: "Viaggio", width: 40, max: 9, align: "center" },
+    { key: "oreStraordinario", label: "Straord.", width: 44, max: 10, align: "center" },
+    { key: "reperibilita", label: "Rep.", width: 28, max: 5, align: "center" },
+    { key: "oreReperibilita", label: "Ore rep.", width: 44, max: 10, align: "center" },
+    { key: "pranzo", label: "Pranzo", width: 42, max: 8, align: "center" },
+    { key: "note", label: "Note", width: 164, max: 44, align: "left" }
   ];
 
-  let content = "0.55 w\n";
+  let content = "";
+  const pageContents = [];
+  let currentY = tableTop;
 
   function drawLine(x1, y1, x2, y2) {
     content += x1.toFixed(2) + " " + y1.toFixed(2) + " m " + x2.toFixed(2) + " " + y2.toFixed(2) + " l S\n";
@@ -8227,45 +8383,89 @@ function cvlsBuildFoglioOreMensilePdfBytes(data) {
     content += "BT /" + (bold ? "F2" : "F1") + " " + size + " Tf " + tx.toFixed(2) + " " + y.toFixed(2) + " Td (" + clean + ") Tj ET\n";
   }
 
-  drawText("FOGLIO ORE MENSILE", pageWidth / 2 - 132, titleY, 24, true, "left", 0);
+  function drawHeaders() {
+    drawText("FOGLIO ORE MENSILE", pageWidth / 2 - 132, titleY, 24, true, "left", 0);
 
-  drawText("Dipendente:", margin + 4, headerY, 8, true, "left", 0);
-  drawText(data.dipendente || "-", margin + 68, headerY, 8, false, "left", 0);
-  drawLine(margin + 66, headerY - 3, margin + 295, headerY - 3);
+    drawText("Dipendente:", margin + 4, headerY, 8, true, "left", 0);
+    drawText(data.dipendente || "-", margin + 68, headerY, 8, false, "left", 0);
+    drawLine(margin + 66, headerY - 3, margin + 295, headerY - 3);
 
-  drawText("Mese:", pageWidth / 2 - 58, headerY, 8, true, "left", 0);
-  drawText(data.mese || "-", pageWidth / 2 - 20, headerY, 8, false, "left", 0);
-  drawLine(pageWidth / 2 - 22, headerY - 3, pageWidth / 2 + 150, headerY - 3);
+    drawText("Mese:", pageWidth / 2 - 58, headerY, 8, true, "left", 0);
+    drawText(data.mese || "-", pageWidth / 2 - 20, headerY, 8, false, "left", 0);
+    drawLine(pageWidth / 2 - 22, headerY - 3, pageWidth / 2 + 150, headerY - 3);
 
-  drawText("Anno:", pageWidth - 170, headerY, 8, true, "left", 0);
-  drawText(data.anno || "-", pageWidth - 132, headerY, 8, false, "left", 0);
-  drawLine(pageWidth - 134, headerY - 3, pageWidth - 52, headerY - 3);
+    drawText("Anno:", pageWidth - 170, headerY, 8, true, "left", 0);
+    drawText(data.anno || "-", pageWidth - 132, headerY, 8, false, "left", 0);
+    drawLine(pageWidth - 134, headerY - 3, pageWidth - 52, headerY - 3);
 
-  let x = margin;
-  const tableBottom = tableTop - rowHeight * 39;
+    let x = margin;
+    drawRect(margin, tableTop - minRowHeight, contentWidth, minRowHeight, true);
+    columns.forEach(function (column) {
+      drawText(column.label, x + 2, tableTop - 7.7, 6.2, true, column.align, column.width - 4);
+      x += column.width;
+    });
 
-  drawRect(margin, tableTop - rowHeight, contentWidth, rowHeight, true);
-  columns.forEach(function (column) {
-    drawLine(x, tableTop, x, tableBottom);
-    drawText(column.label, x + 2, tableTop - 7.7, 6.2, true, column.align, column.width - 4);
-    x += column.width;
-  });
-  drawLine(margin + contentWidth, tableTop, margin + contentWidth, tableBottom);
+    drawLine(margin, tableTop, margin + contentWidth, tableTop);
+    drawLine(margin, tableTop - minRowHeight, margin + contentWidth, tableTop - minRowHeight);
 
-  for (let i = 0; i <= 39; i++) {
-    const y = tableTop - rowHeight * i;
-    drawLine(margin, y, margin + contentWidth, y);
+    let hx = margin;
+    columns.forEach(function (column) {
+      drawLine(hx, tableTop, hx, tableTop - minRowHeight);
+      hx += column.width;
+    });
+    drawLine(margin + contentWidth, tableTop, margin + contentWidth, tableTop - minRowHeight);
+
+    currentY = tableTop - minRowHeight;
   }
 
-  data.rows.forEach(function (row, index) {
-    let cellX = margin;
-    const y = tableTop - rowHeight * (index + 1) - 7.7;
+  function finishPage() {
+    pageContents.push(content);
+  }
 
+  function newPage() {
+    content = "0.55 w\n";
+    drawHeaders();
+  }
+
+  newPage();
+
+  data.rows.forEach(function (row) {
+    let righeLuogo = cvlsPdfWrapText(row.luogo || "", columns[1].max);
+    let righeNote = cvlsPdfWrapText(row.note || "", columns[11].max);
+
+    let lineCount = Math.max(righeLuogo.length, righeNote.length, 1);
+    let rowH = Math.max(minRowHeight, padding + lineCount * lineHeight);
+
+    if (currentY - rowH < 35) {
+       finishPage();
+       newPage();
+    }
+
+    let cellX = margin;
     columns.forEach(function (column) {
-      const text = row[column.key] || "";
-      drawText(cvlsPdfClipText(text, column.max), cellX + 2, y, 6.2, column.key === "giorno", column.align, column.width - 4);
+      if (column.key === "luogo") {
+         let startY = currentY - (rowH - (righeLuogo.length * lineHeight)) / 2 - 5.0;
+         righeLuogo.forEach(function(l, i) {
+           drawText(l, cellX + 2, startY - (i * lineHeight), 5.5, false, column.align, column.width - 4);
+         });
+      } else if (column.key === "note") {
+         let startY = currentY - (rowH - (righeNote.length * lineHeight)) / 2 - 5.0;
+         righeNote.forEach(function(l, i) {
+           drawText(l, cellX + 2, startY - (i * lineHeight), 5.5, false, column.align, column.width - 4);
+         });
+      } else {
+         const text = cvlsPdfClipText(row[column.key] || "", column.max);
+         drawText(text, cellX + 2, currentY - rowH / 2 - 2.5, 6.2, column.key === "giorno", column.align, column.width - 4);
+      }
+
+      drawLine(cellX, currentY, cellX, currentY - rowH);
       cellX += column.width;
     });
+
+    drawLine(margin + contentWidth, currentY, margin + contentWidth, currentY - rowH);
+    drawLine(margin, currentY - rowH, margin + contentWidth, currentY - rowH);
+
+    currentY -= rowH;
   });
 
   const totalRows = [
@@ -8275,23 +8475,31 @@ function cvlsBuildFoglioOreMensilePdfBytes(data) {
     ["Totale ore viaggio", data.totals.totaleViaggio],
     ["Settimane reperibilita", String(data.totals.settimaneReperibilita || 0)],
     ["Totale ore reperibilita", data.totals.totaleReperibilita],
-    ["Totale pranzo", data.totals.totalePranzo]
+    ["Totale pranzi", data.totals.totalePranzo]
   ];
 
-  totalRows.forEach(function (item, index) {
-    const rowIndex = data.rows.length + index + 1;
-    const yTop = tableTop - rowHeight * rowIndex;
-    drawRect(margin, yTop - rowHeight, columns[0].width + columns[1].width, rowHeight, true);
-    drawText(item[0], margin + 4, yTop - 7.7, 6.8, true, "left", 0);
-    drawText(item[1] || "", margin + columns[0].width + columns[1].width + 6, yTop - 7.7, 6.8, true, "left", 0);
+  if (currentY - (totalRows.length * minRowHeight) < 35) {
+     finishPage();
+     newPage();
+  }
+
+  const totalsLabelWidth = columns[0].width + columns[1].width;
+  const totalsValueWidth = columns[2].width + columns[3].width;
+
+  totalRows.forEach(function (item) {
+    drawRect(margin, currentY - minRowHeight, totalsLabelWidth, minRowHeight, true);
+    drawRect(margin + totalsLabelWidth, currentY - minRowHeight, totalsValueWidth, minRowHeight, false);
+    drawText(item[0], margin + 4, currentY - 7.7, 6.8, true, "left", totalsLabelWidth - 8);
+    drawText(item[1] || "", margin + totalsLabelWidth + 4, currentY - 7.7, 6.8, true, "left", totalsValueWidth - 8);
+    currentY -= minRowHeight;
   });
 
-  drawText("Reperibilita: indicare con R le settimane di reperibilita. Pranzo: 1 ora / 1/2 ora / 0 ore.", margin + 4, 20, 8, true, "left", 0);
+  finishPage();
 
-  return cvlsBuildSinglePagePdf(pageWidth, pageHeight, content);
+  return cvlsBuildMultiPagePdf(pageWidth, pageHeight, pageContents);
 }
 
-function cvlsBuildSinglePagePdf(pageWidth, pageHeight, content) {
+function cvlsBuildMultiPagePdf(pageWidth, pageHeight, pageContents) {
   const objects = [];
 
   function addObject(body) {
@@ -8300,11 +8508,21 @@ function cvlsBuildSinglePagePdf(pageWidth, pageHeight, content) {
   }
 
   const catalogId = addObject("<< /Type /Catalog /Pages 2 0 R >>");
-  addObject("<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
-  addObject("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + pageWidth + " " + pageHeight + "] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>");
+
+  let kidsArr = [];
+  for (let i = 0; i < pageContents.length; i++) {
+     kidsArr.push((3 + i * 2) + " 0 R");
+  }
+  addObject("<< /Type /Pages /Kids [" + kidsArr.join(" ") + "] /Count " + pageContents.length + " >>");
+
+  for (let i = 0; i < pageContents.length; i++) {
+    let content = pageContents[i];
+    addObject("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + pageWidth + " " + pageHeight + "] /Resources << /Font << /F1 " + (3 + pageContents.length * 2) + " 0 R /F2 " + (4 + pageContents.length * 2) + " 0 R >> >> /Contents " + (4 + i * 2) + " 0 R >>");
+    addObject("<< /Length " + content.length + " >>\nstream\n" + content + "endstream");
+  }
+
   addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
   addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
-  addObject("<< /Length " + content.length + " >>\nstream\n" + content + "endstream");
 
   let pdf = "%PDF-1.4\n";
   const offsets = [0];

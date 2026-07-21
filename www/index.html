@@ -536,11 +536,12 @@
           <span class="admin-title">Tecnico</span>
           <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
             <span style="color: #374151; font-size: 14px;">Registro ore personale:</span>
-            <span id="regPresTecnicoNome" style="font-weight: bold; color: var(--blue-dark); font-size: 14px; text-align: right; word-break: break-word;">-</span>
+            <span id="regPresTecnicoNome"
+              style="font-weight: bold; color: var(--blue-dark); font-size: 14px; text-align: right; word-break: break-word;">-</span>
           </div>
         </div>
 
-      <!-- Elenco e preview -->
+        <!-- Elenco e preview -->
         <!-- Info Posizione -->
         <div class="admin-box">
           <span class="admin-title">Info Posizione</span>
@@ -548,17 +549,21 @@
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <span style="color: #374151; font-size: 14px;">Stato GPS:</span>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <span id="regPresGpsStatusText" style="color: #6b7280; font-size: 14px;">In attesa di attivazione...</span>
-                <span id="regPresGpsStatusDot" class="gps-dot orange" style="display: inline-block; width: 12px; height: 12px; border-radius: 50%;"></span>
+                <span id="regPresGpsStatusText" style="color: #6b7280; font-size: 14px;">In attesa di
+                  attivazione...</span>
+                <span id="regPresGpsStatusDot" class="gps-dot orange"
+                  style="display: inline-block; width: 12px; height: 12px; border-radius: 50%;"></span>
               </div>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <span style="color: #374151; font-size: 14px;">Area/Zona autorizzata:</span>
-              <span id="regPresAreaAutorizzata" style="font-weight: bold; color: var(--blue-dark); font-size: 14px;">Ozegna (Sede)</span>
+              <span id="regPresAreaAutorizzata"
+                style="font-weight: bold; color: var(--blue-dark); font-size: 14px;">Ozegna (Sede)</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <span style="color: #374151; font-size: 14px;">Distanza attuale:</span>
-              <span id="regPresDistanzaAttuale" style="font-weight: bold; color: var(--blue-dark); font-size: 14px;">-</span>
+              <span id="regPresDistanzaAttuale"
+                style="font-weight: bold; color: var(--blue-dark); font-size: 14px;">-</span>
             </div>
           </div>
         </div>
@@ -569,23 +574,37 @@
           <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 12px; text-align: left;">
 
             <div style="position: relative;">
-              <label for="regPresPresidioInput" style="display: block; font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #374151;">Presidio</label>
-              <input type="text" id="regPresPresidioInput" placeholder="Cerca presidio..." class="cvls-dialog-form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; background-color: white; font-size: 14px; box-sizing: border-box;" autocomplete="off">
-              <div id="regPresPresidioSuggestions" style="position: absolute; top: 100%; left: 0; right: 0; background-color: white; border: 1px solid #d1d5db; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); display: none; margin-top: 4px;"></div>
+              <label for="regPresPresidioInput"
+                style="display: block; font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #374151;">Presidio</label>
+              <input type="text" id="regPresPresidioInput" placeholder="Cerca presidio..."
+                class="cvls-dialog-form-control"
+                style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; background-color: white; font-size: 14px; box-sizing: border-box;"
+                autocomplete="off">
+              <div id="regPresPresidioSuggestions"
+                style="position: absolute; top: 100%; left: 0; right: 0; background-color: white; border: 1px solid #d1d5db; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); display: none; margin-top: 4px;">
+              </div>
             </div>
 
             <div style="position: relative;">
-              <label for="regPresUbicazioneInput" style="display: block; font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #374151;">Ubicazione</label>
-              <input type="text" id="regPresUbicazioneInput" placeholder="Cerca ubicazione..." class="cvls-dialog-form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; background-color: white; font-size: 14px; box-sizing: border-box;" autocomplete="off">
-              <div id="regPresUbicazioneSuggestions" style="position: absolute; top: 100%; left: 0; right: 0; background-color: white; border: 1px solid #d1d5db; border-radius: 8px; max-height: 220px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); display: none; margin-top: 4px;"></div>
+              <label for="regPresUbicazioneInput"
+                style="display: block; font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #374151;">Ubicazione</label>
+              <input type="text" id="regPresUbicazioneInput" placeholder="Cerca ubicazione..."
+                class="cvls-dialog-form-control"
+                style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; background-color: white; font-size: 14px; box-sizing: border-box;"
+                autocomplete="off">
+              <div id="regPresUbicazioneSuggestions"
+                style="position: absolute; top: 100%; left: 0; right: 0; background-color: white; border: 1px solid #d1d5db; border-radius: 8px; max-height: 220px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); display: none; margin-top: 4px;">
+              </div>
             </div>
 
-            <button id="regPresLuogoAddBtn" type="button" class="secondary-btn" style="width: 100%; margin: 0; padding: 11px 14px; border-radius: 8px; cursor: pointer;">
+            <button id="regPresLuogoAddBtn" type="button" class="secondary-btn"
+              style="width: 100%; margin: 0; padding: 11px 14px; border-radius: 8px; cursor: pointer;">
               Aggiungi
             </button>
 
             <div style="font-size: 12px; color: #6b7280; line-height: 1.45;">
-              L'ubicazione è facoltativa. Puoi aggiungere più luoghi e rimuoverli con la × fino alla bollatura successiva.
+              L'ubicazione è facoltativa. Puoi aggiungere più luoghi e rimuoverli con la × fino alla bollatura
+              successiva.
             </div>
 
             <div id="regPresLuogoSelected" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
@@ -594,20 +613,42 @@
 
         <!-- Pranzo -->
         <div id="regPresPranzoBox" class="admin-box">
-          <span class="admin-title">Pranzo</span>
-          <div id="regPresPranzoOptions" style="margin-top: 12px; display: grid; grid-template-columns: 1fr; gap: 10px; text-align: left;">
-            <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #d1d5db; border-radius: 12px; background: white; font-weight: bold; color: #374151;">
-              <input id="regPresPranzo1Ora" type="checkbox" value="1 ora" data-reg-pres-pranzo="1" style="width: 20px; height: 20px; margin: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="admin-title">Pranzo</span>
+            <div style="display: flex; align-items: center; gap: 15px;">
+              <span style="font-size: 14px; font-weight: bold; color: #374151;">Diritto pranzo:</span>
+              <label
+                style="display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: bold; color: #374151;">
+                <input id="regPresDirittoPranzoSi" type="radio" name="dirittoPranzo" value="si"
+                  style="width: 18px; height: 18px; margin: 0;"> Sì
+              </label>
+              <label
+                style="display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: bold; color: #374151;">
+                <input id="regPresDirittoPranzoNo" type="radio" name="dirittoPranzo" value="no"
+                  style="width: 18px; height: 18px; margin: 0;"> No
+              </label>
+            </div>
+          </div>
+          <div id="regPresPranzoOptions"
+            style="margin-top: 12px; display: grid; grid-template-columns: 1fr; gap: 10px; text-align: left;">
+            <label
+              style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #d1d5db; border-radius: 12px; background: white; font-weight: bold; color: #374151;">
+              <input id="regPresPranzo1Ora" type="checkbox" value="1 ora" data-reg-pres-pranzo="1"
+                style="width: 20px; height: 20px; margin: 0;">
               <span>1 ora</span>
             </label>
 
-            <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #d1d5db; border-radius: 12px; background: white; font-weight: bold; color: #374151;">
-              <input id="regPresPranzoMezzOra" type="checkbox" value="1/2 ora" data-reg-pres-pranzo="1" style="width: 20px; height: 20px; margin: 0;">
+            <label
+              style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #d1d5db; border-radius: 12px; background: white; font-weight: bold; color: #374151;">
+              <input id="regPresPranzoMezzOra" type="checkbox" value="1/2 ora" data-reg-pres-pranzo="1"
+                style="width: 20px; height: 20px; margin: 0;">
               <span>1/2 ora</span>
             </label>
 
-            <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #d1d5db; border-radius: 12px; background: white; font-weight: bold; color: #374151;">
-              <input id="regPresPranzoContinuato" type="checkbox" value="Continuato" data-reg-pres-pranzo="1" style="width: 20px; height: 20px; margin: 0;">
+            <label
+              style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #d1d5db; border-radius: 12px; background: white; font-weight: bold; color: #374151;">
+              <input id="regPresPranzoContinuato" type="checkbox" value="Continuato" data-reg-pres-pranzo="1"
+                style="width: 20px; height: 20px; margin: 0;">
               <span>Continuato</span>
             </label>
           </div>
@@ -619,7 +660,9 @@
         <div id="regPresOreViaggioBox" class="admin-box reg-pres-ore-viaggio-disabled">
           <span class="admin-title">Ore viaggio</span>
           <div class="reg-pres-ore-viaggio-content" style="margin-top: 12px;">
-            <select id="regPresOreViaggioSelect" class="cvls-dialog-form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; background-color: white; font-size: 14px;" disabled></select>
+            <select id="regPresOreViaggioSelect" class="cvls-dialog-form-control"
+              style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; background-color: white; font-size: 14px;"
+              disabled></select>
             <div id="regPresOreViaggioHelp" style="font-size: 13px; color: #6b7280; margin-top: 8px; text-align: left;">
               Selezionabile dopo la bollatura di ingresso
             </div>
@@ -631,8 +674,11 @@
         <div class="admin-box">
           <span class="admin-title">Bollatura</span>
           <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button id="regPresIngressoBtn" class="primary-btn" style="flex: 1; margin: 0 !important; padding: 0 12px; border-radius: 8px; height: 48px; font-weight: bold; font-size: 15px; cursor: pointer;">Ingresso</button>
-            <button id="regPresUscitaBtn" class="secondary-btn" style="flex: 1; margin: 0 !important; padding: 0 12px; border-radius: 8px; height: 48px; font-weight: bold; font-size: 15px; background-color: #e5e7eb; color: #9ca3af; border: none; cursor: not-allowed;" disabled>Uscita</button>
+            <button id="regPresIngressoBtn" class="primary-btn"
+              style="flex: 1; margin: 0 !important; padding: 0 12px; border-radius: 8px; height: 48px; font-weight: bold; font-size: 15px; cursor: pointer;">Ingresso</button>
+            <button id="regPresUscitaBtn" class="secondary-btn"
+              style="flex: 1; margin: 0 !important; padding: 0 12px; border-radius: 8px; height: 48px; font-weight: bold; font-size: 15px; background-color: #e5e7eb; color: #9ca3af; border: none; cursor: not-allowed;"
+              disabled>Uscita</button>
           </div>
         </div>
 
@@ -641,17 +687,17 @@
           <span class="admin-title">Reperibilità</span>
           <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
             <button id="cvlsRepAddPeriodoBtn" class="secondary-btn"
-              style="width: 100%; margin: 0 !important; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">+ Periodo reperibilità</button>
+              style="width: 100%; margin: 0 !important; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">+
+              Periodo reperibilità</button>
             <button id="cvlsRepAddInterventoBtn" class="secondary-btn"
-              style="width: 100%; margin: 0 !important; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">+ Intervento reperibilità</button>
+              style="width: 100%; margin: 0 !important; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">+
+              Intervento reperibilità</button>
           </div>
           <div style="margin-top: 14px;">
-            <div style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;">Periodi</div>
+            <div
+              style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;">
+              Periodi</div>
             <div id="cvlsRepPeriodiList" class="cvls-rep-list"></div>
-          </div>
-          <div style="margin-top: 14px;">
-            <div style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;">Interventi</div>
-            <div id="cvlsRepInterventiList" class="cvls-rep-list"></div>
           </div>
         </div>
 
@@ -659,7 +705,9 @@
         <div class="admin-box">
           <span class="admin-title">Registro</span>
           <div style="margin-top: 10px;">
-            <button id="regPresVisualizzaBtn" class="primary-btn" style="width: 100%; padding: 12px; border-radius: 8px; cursor: pointer;">Visualizza Registro Presenze</button>
+            <button id="regPresVisualizzaBtn" class="primary-btn"
+              style="width: 100%; padding: 12px; border-radius: 8px; cursor: pointer;">Visualizza Registro
+              Presenze</button>
           </div>
         </div>
       </section>
@@ -803,8 +851,10 @@
         </div>
 
         <!-- Dati modificabili reperibilità -->
-        <div id="regPresDatiReperibilita" class="hidden" style="margin-top: 18px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #f9fafb; text-align: left;">
-          <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 10px;">Reperibilità del periodo</div>
+        <div id="regPresDatiReperibilita" class="hidden"
+          style="margin-top: 18px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #f9fafb; text-align: left;">
+          <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 10px;">Reperibilità del periodo
+          </div>
           <div style="font-size: 12px; color: #4b5563; margin-bottom: 15px;">
             Consulta, modifica o elimina i dati di reperibilità del mese selezionato.
           </div>
@@ -812,22 +862,27 @@
           <div id="cvlsRegPresModificabiliInterventi"></div>
         </div>
 
-        <div id="regPresFoglioOrePeriodo" style="margin-top: 18px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #f9fafb; text-align: left;">
+        <div id="regPresFoglioOrePeriodo"
+          style="margin-top: 18px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #f9fafb; text-align: left;">
           <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 10px;">Periodo foglio ore</div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <label style="display: block; font-size: 12px; font-weight: 700; color: #4b5563;">
               Mese
-              <select id="regPresFoglioOreMese" style="width: 100%; margin-top: 6px; padding: 10px; border: 1px solid #d1d5db; border-radius: 10px; background: #ffffff; color: #111827; font-size: 14px;"></select>
+              <select id="regPresFoglioOreMese"
+                style="width: 100%; margin-top: 6px; padding: 10px; border: 1px solid #d1d5db; border-radius: 10px; background: #ffffff; color: #111827; font-size: 14px;"></select>
             </label>
             <label style="display: block; font-size: 12px; font-weight: 700; color: #4b5563;">
               Anno
-              <select id="regPresFoglioOreAnno" style="width: 100%; margin-top: 6px; padding: 10px; border: 1px solid #d1d5db; border-radius: 10px; background: #ffffff; color: #111827; font-size: 14px;"></select>
+              <select id="regPresFoglioOreAnno"
+                style="width: 100%; margin-top: 6px; padding: 10px; border: 1px solid #d1d5db; border-radius: 10px; background: #ffffff; color: #111827; font-size: 14px;"></select>
             </label>
           </div>
         </div>
 
-        <div id="regPresFoglioOreActions" style="margin-top: 12px; display: grid; grid-template-columns: 1fr; gap: 10px;">
-          <button id="regPresGeneraFoglioOreBtn" class="primary-btn" type="button" style="width: 100%; padding: 12px; border-radius: 8px; cursor: pointer; margin-top: 0;">
+        <div id="regPresFoglioOreActions"
+          style="margin-top: 12px; display: grid; grid-template-columns: 1fr; gap: 10px;">
+          <button id="regPresGeneraFoglioOreBtn" class="primary-btn" type="button"
+            style="width: 100%; padding: 12px; border-radius: 8px; cursor: pointer; margin-top: 0;">
             Genera foglio ore
           </button>
         </div>
@@ -996,17 +1051,20 @@
   <!-- =============================================
        DIALOG ORE VIAGGIO
   ============================================== -->
-  <div id="cvlsRepViaggioDialog" class="cvls-rep-dialog" role="dialog" aria-modal="true" aria-labelledby="cvlsRepViaggioTitle">
+  <div id="cvlsRepViaggioDialog" class="cvls-rep-dialog" role="dialog" aria-modal="true"
+    aria-labelledby="cvlsRepViaggioTitle">
     <div class="cvls-rep-dialog-card">
       <div id="cvlsRepViaggioTitle" class="cvls-rep-dialog-title">Ore viaggio</div>
       <input type="hidden" id="cvlsRepViaggioData" />
       <div class="cvls-rep-dialog-field">
         <label class="cvls-rep-dialog-label" for="cvlsRepViaggioSelectDialog">Durata</label>
-        <select id="cvlsRepViaggioSelectDialog" class="cvls-dialog-form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; background-color: white; font-size: 14px;"></select>
+        <select id="cvlsRepViaggioSelectDialog" class="cvls-dialog-form-control"
+          style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; background-color: white; font-size: 14px;"></select>
       </div>
       <div class="cvls-rep-dialog-actions">
         <button id="cvlsRepViaggioAnnullaBtn" class="secondary-btn">Annulla</button>
-        <button id="cvlsRepViaggioCancellaBtn" class="secondary-btn" style="color: #ef4444; border-color: #fca5a5;">Elimina</button>
+        <button id="cvlsRepViaggioCancellaBtn" class="secondary-btn"
+          style="color: #ef4444; border-color: #fca5a5;">Elimina</button>
         <button id="cvlsRepViaggioSalvaBtn" class="primary-btn">Salva</button>
       </div>
     </div>
@@ -1015,7 +1073,8 @@
   <!-- =============================================
        DIALOG PERIODO REPERIBILITÀ
   ============================================== -->
-  <div id="cvlsRepPeriodoDialog" class="cvls-rep-dialog" role="dialog" aria-modal="true" aria-labelledby="cvlsRepPeriodoTitle">
+  <div id="cvlsRepPeriodoDialog" class="cvls-rep-dialog" role="dialog" aria-modal="true"
+    aria-labelledby="cvlsRepPeriodoTitle">
     <div class="cvls-rep-dialog-card">
       <div id="cvlsRepPeriodoTitle" class="cvls-rep-dialog-title">Periodo reperibilità</div>
       <input type="hidden" id="cvlsRepPeriodoId" />
@@ -1039,7 +1098,8 @@
   <!-- =============================================
        DIALOG INTERVENTO REPERIBILITÀ
   ============================================== -->
-  <div id="cvlsRepInterventoDialog" class="cvls-rep-dialog" role="dialog" aria-modal="true" aria-labelledby="cvlsRepInterventoTitle">
+  <div id="cvlsRepInterventoDialog" class="cvls-rep-dialog" role="dialog" aria-modal="true"
+    aria-labelledby="cvlsRepInterventoTitle">
     <div class="cvls-rep-dialog-card">
       <div id="cvlsRepInterventoTitle" class="cvls-rep-dialog-title">Intervento reperibilità</div>
       <input type="hidden" id="cvlsRepInterventoId" />
@@ -1060,11 +1120,11 @@
       <div class="cvls-rep-dialog-field">
         <label class="cvls-rep-dialog-label">Durata intervento</label>
         <div class="cvls-duration-input-group">
-          <input type="number" id="cvlsRepInterventoDurOre" class="cvls-duration-input"
-            min="0" max="23" placeholder="0" aria-label="Ore durata intervento" />
+          <input type="number" id="cvlsRepInterventoDurOre" class="cvls-duration-input" min="0" max="23" placeholder="0"
+            aria-label="Ore durata intervento" />
           <span class="cvls-duration-sep">h</span>
-          <input type="number" id="cvlsRepInterventoDurMin" class="cvls-duration-input"
-            min="0" max="59" placeholder="00" aria-label="Minuti durata intervento" />
+          <input type="number" id="cvlsRepInterventoDurMin" class="cvls-duration-input" min="0" max="59"
+            placeholder="00" aria-label="Minuti durata intervento" />
           <span class="cvls-duration-sep">m</span>
         </div>
       </div>
@@ -1098,13 +1158,13 @@
 
   <script src="supabase-js.js"></script>
   <script src="cvls-supabase.js"></script>
-  <script src="cvls-api.js?v=28"></script>
+  <script src="cvls-api.js?v=29"></script>
   <script src="cvls-attachments.js"></script>
   <script src="cvls-registro-presenze-calcoli.js?v=2"></script>
-  <script src="cvls-geobollatura.js?v=28"></script>
+  <script src="cvls-geobollatura.js?v=29"></script>
   <script src="pages/nota-spese/nota-spese.js?v=3"></script>
-  <script src="cvls-reperibilita.js?v=5"></script>
-  <script src="app.js?v=33"></script>
+  <script src="cvls-reperibilita.js?v=7"></script>
+  <script src="app.js?v=35"></script>
 </body>
 
-</html>
+</html>

@@ -230,9 +230,17 @@ async function applyPendingChangeToSupabase(change) {
                 : null;
         };
 
+        let dirittoPranzo = false;
+        if (typeof payload.diritto_pranzo === 'boolean') {
+            dirittoPranzo = payload.diritto_pranzo;
+        } else if (payload.pausa_pranzo) {
+            dirittoPranzo = ["1 ora", "1/2 ora", "Continuato"].includes(payload.pausa_pranzo);
+        }
+
         const { error } = await supabase.from('bollature').insert({
             user_id: user.id,
             tecnico: payload.tecnico || localStorage.getItem("cvls_user_name") || "Tecnico",
+            diritto_pranzo: dirittoPranzo,
             codice_completo: payload.codice_completo || null,
             tipo_bollatura: payload.tipo_bollatura,
             orario: payload.orario,
@@ -638,6 +646,7 @@ async function fetchCompleteDatabaseFromSupabase(expectedUserId) {
         id: b.id,
         user_id: b.user_id,
         tecnico: b.tecnico,
+        diritto_pranzo: b.diritto_pranzo === true,
         codice_completo: b.codice_completo || null,
         tipo_bollatura: b.tipo_bollatura,
         orario: b.orario,
