@@ -7901,6 +7901,11 @@ function cvlsBuildFoglioOreMensileData() {
       interventiGiorno = dati.reperibilita_interventi.filter(function(v) { return v.data === dayKey; });
     }
 
+    let dirittoPranzoTesto = "";
+    if (lastUscita && lastUscita.raw && typeof lastUscita.raw.diritto_pranzo === 'boolean') {
+      dirittoPranzoTesto = lastUscita.raw.diritto_pranzo ? "Sì" : "No";
+    }
+
     const rigaOrdinaria = {
       giorno: cvlsFormatRegistroDayLabel(currentDate),
       dataISO: dayKey,
@@ -7920,6 +7925,7 @@ function cvlsBuildFoglioOreMensileData() {
       oreReperibilita: interventiGiorno.length > 0 ? "" : (repData ? cvlsMinutesToHourText(repData.oreReperibilitaPerGiorno[dayKey] || 0, true) : ""),
       pranzoMinuti: pranzoMinuti,
       pranzo: pranzoLabels,
+      dirittoPranzo: dirittoPranzoTesto,
       note: note.join("; ")
     };
 
@@ -7968,6 +7974,7 @@ function cvlsBuildFoglioOreMensileData() {
         oreReperibilita: cvlsMinutesToHourText(durataIntervento, true),
         pranzoMinuti: 0,
         pranzo: "",
+        dirittoPranzo: "",
         note: intv.numero_rit ? "RIT " + intv.numero_rit : (intv.note || intv.rit || "Intervento reperibilità")
       });
     });
@@ -8323,7 +8330,6 @@ function cvlsPdfWrapText(value, maxChars) {
 
   return lines;
 }
-
 function cvlsBuildFoglioOreMensilePdfBytes(data) {
   const pageWidth = 842;
   const pageHeight = 595;
@@ -8338,18 +8344,19 @@ function cvlsBuildFoglioOreMensilePdfBytes(data) {
   const lineHeight = 6;
 
   const columns = [
-    { key: "giorno", label: "Giorno", width: 34, max: 5, align: "center" },
-    { key: "luogo", label: "Luogo", width: 250, max: 68, align: "left" },
-    { key: "ingresso", label: "Ingresso", width: 40, max: 8, align: "center" },
-    { key: "uscita", label: "Uscita", width: 40, max: 8, align: "center" },
-    { key: "totaleGiorno", label: "Tot ore", width: 44, max: 10, align: "center" },
-    { key: "orePermesso", label: "Permesso", width: 44, max: 10, align: "center" },
-    { key: "oreViaggio", label: "Viaggio", width: 40, max: 9, align: "center" },
-    { key: "oreStraordinario", label: "Straord.", width: 44, max: 10, align: "center" },
-    { key: "reperibilita", label: "Rep.", width: 28, max: 5, align: "center" },
-    { key: "oreReperibilita", label: "Ore rep.", width: 44, max: 10, align: "center" },
-    { key: "pranzo", label: "Pranzo", width: 42, max: 8, align: "center" },
-    { key: "note", label: "Note", width: 164, max: 44, align: "left" }
+    { key: "giorno", label: "Giorno", width: 32, max: 5, align: "center" },
+    { key: "luogo", label: "Luogo", width: 230, max: 62, align: "left" },
+    { key: "ingresso", label: "Ingresso", width: 38, max: 8, align: "center" },
+    { key: "uscita", label: "Uscita", width: 38, max: 8, align: "center" },
+    { key: "totaleGiorno", label: "Tot ore", width: 42, max: 10, align: "center" },
+    { key: "orePermesso", label: "Permesso", width: 42, max: 10, align: "center" },
+    { key: "oreViaggio", label: "Viaggio", width: 38, max: 9, align: "center" },
+    { key: "oreStraordinario", label: "Straord.", width: 42, max: 10, align: "center" },
+    { key: "reperibilita", label: "Rep.", width: 26, max: 5, align: "center" },
+    { key: "oreReperibilita", label: "Ore rep.", width: 42, max: 10, align: "center" },
+    { key: "pranzo", label: "Pranzo", width: 56, max: 11, align: "center" },
+    { key: "dirittoPranzo", label: "Diritto\npranzo", width: 36, max: 7, align: "center" },
+    { key: "note", label: "Note", width: 152, max: 40, align: "left" }
   ];
 
   let content = "";
@@ -8401,7 +8408,13 @@ function cvlsBuildFoglioOreMensilePdfBytes(data) {
     let x = margin;
     drawRect(margin, tableTop - minRowHeight, contentWidth, minRowHeight, true);
     columns.forEach(function (column) {
-      drawText(column.label, x + 2, tableTop - 7.7, 6.2, true, column.align, column.width - 4);
+      if (column.label.indexOf("\n") !== -1) {
+        let parts = column.label.split("\n");
+        drawText(parts[0], x + 2, tableTop - 4.8, 5.0, true, column.align, column.width - 4);
+        drawText(parts[1], x + 2, tableTop - 9.6, 5.0, true, column.align, column.width - 4);
+      } else {
+        drawText(column.label, x + 2, tableTop - 7.7, 6.2, true, column.align, column.width - 4);
+      }
       x += column.width;
     });
 
@@ -8429,9 +8442,12 @@ function cvlsBuildFoglioOreMensilePdfBytes(data) {
 
   newPage();
 
+  const luogoColumn = columns.find(function(c) { return c.key === "luogo"; });
+  const noteColumn = columns.find(function(c) { return c.key === "note"; });
+
   data.rows.forEach(function (row) {
-    let righeLuogo = cvlsPdfWrapText(row.luogo || "", columns[1].max);
-    let righeNote = cvlsPdfWrapText(row.note || "", columns[11].max);
+    let righeLuogo = cvlsPdfWrapText(row.luogo || "", luogoColumn ? luogoColumn.max : 62);
+    let righeNote = cvlsPdfWrapText(row.note || "", noteColumn ? noteColumn.max : 40);
 
     let lineCount = Math.max(righeLuogo.length, righeNote.length, 1);
     let rowH = Math.max(minRowHeight, padding + lineCount * lineHeight);

@@ -7,6 +7,85 @@ window.CvlsGeobollatura = (function () {
     let currentCoords = null;
     let isPageTrackingActive = false;
     let isModalOpen = false;
+    let isBollaturaInCorso = false;
+
+    function cvlsFormatLocalDateYMD(dateOrIso) {
+        if (!dateOrIso) return "";
+        var d = (dateOrIso instanceof Date) ? dateOrIso : new Date(dateOrIso);
+        if (isNaN(d.getTime())) return "";
+        var yyyy = d.getFullYear();
+        var mm = String(d.getMonth() + 1).padStart(2, "0");
+        var dd = String(d.getDate()).padStart(2, "0");
+        return yyyy + "-" + mm + "-" + dd;
+    }
+
+    function cvlsIsActiveAttendanceForDate(activeAttendance, targetYMD) {
+        return !!(
+            activeAttendance &&
+            activeAttendance.time &&
+            cvlsFormatLocalDateYMD(activeAttendance.time) === targetYMD
+        );
+    }
+
+    function cvlsGetDailyAttendanceState(targetDateStr) {
+        var todayYMD = targetDateStr || cvlsFormatLocalDateYMD(new Date());
+        if (!todayYMD) return "EMPTY";
+
+        var userId = String(localStorage.getItem("cvls_user_id") || "").trim();
+        var records = [];
+
+        ensureDataShape();
+        if (Array.isArray(dati.bollature)) {
+            dati.bollature.forEach(function (b) {
+                if (!b || !b.orario) return;
+                if (b.user_id && userId && String(b.user_id).trim() !== userId) return;
+                var bDateYMD = cvlsFormatLocalDateYMD(b.orario);
+                if (bDateYMD === todayYMD) {
+                    var tipo = String(b.tipo_bollatura || "").toLowerCase();
+                    if (tipo === "ingresso" || tipo === "uscita") {
+                        records.push({ id: b.id, tipo: tipo });
+                    }
+                }
+            });
+        }
+
+        if (typeof window.getPendingChanges === "function") {
+            try {
+                var pendingList = window.getPendingChanges() || [];
+                pendingList.forEach(function (p) {
+                    if (!p || p.type !== "ADD_BOLLATURA" || !p.payload) return;
+                    var payload = p.payload;
+                    if (!payload.orario) return;
+                    var pDateYMD = cvlsFormatLocalDateYMD(payload.orario);
+                    if (pDateYMD === todayYMD) {
+                        var tipoP = String(payload.tipo_bollatura || "").toLowerCase();
+                        if (tipoP === "ingresso" || tipoP === "uscita") {
+                            records.push({ id: payload.id || p.changeId, tipo: tipoP });
+                        }
+                    }
+                });
+            } catch (e) {}
+        }
+
+        // Priorita 1: COMPLETED
+        var hasUscita = records.some(function (r) { return r.tipo === "uscita"; });
+        if (hasUscita) {
+            return "COMPLETED";
+        }
+
+        // Priorita 2: ACTIVE (soltanto se l'ingresso appartiene alla stessa data odierna)
+        var activeCheckin = getActiveAttendance();
+        if (cvlsIsActiveAttendanceForDate(activeCheckin, todayYMD)) {
+            return "ACTIVE";
+        }
+        var hasIngresso = records.some(function (r) { return r.tipo === "ingresso"; });
+        if (hasIngresso) {
+            return "ACTIVE";
+        }
+
+        // Priorita 3: EMPTY
+        return "EMPTY";
+    }
 
     function getActiveCheckinStorageKey() {
         const userId = String(localStorage.getItem("cvls_user_id") || "").trim();
@@ -358,11 +437,13 @@ window.CvlsGeobollatura = (function () {
             cantiereNome: selectedCantiere
         };
 
-        // Salva in localStorage come presenza attiva
-        setActiveAttendance(checkinInfo);
+        const salvato = inviaBollatura("ingresso", checkinInfo);
+        if (salvato !== true) {
+            updateUI();
+            return;
+        }
 
-        // Registra la bollatura localmente e in pending
-        inviaBollatura("ingresso", checkinInfo);
+        setActiveAttendance(checkinInfo);
         syncBollatureRegistroPresenzeAuto();
 
         cvlsAlert("Ingresso al lavoro registrato con successo!", "Bollatura effettuata");
@@ -376,14 +457,13 @@ window.CvlsGeobollatura = (function () {
         }
 
         const activeCheckin = getActiveCheckin();
-        if (!activeCheckin) return; // Non in servizio
+        if (!activeCheckin) return;
 
         const nomeSede = activeCheckin.nomeSede || "Ozegna (Sede)";
         const latTarget = parseFloat(localStorage.getItem("cvls_bollatura_latitudine") || "45.3496");
         const lonTarget = parseFloat(localStorage.getItem("cvls_bollatura_longitudine") || "7.7470");
         const raggioTarget = parseFloat(localStorage.getItem("cvls_bollatura_raggio") || "200");
 
-        // Calcolo e geofencing per uscita
         const distance = getDistance(
             currentCoords.latitude,
             currentCoords.longitude,
@@ -395,7 +475,7 @@ window.CvlsGeobollatura = (function () {
 
         if (!isWithinRange) {
             const forzato = await confirmForceRegistration(distance, raggioTarget, nomeSede, "uscita");
-            if (!forzato) return; // Abortito
+            if (!forzato) return;
         }
 
         const checkoutInfo = {
@@ -406,11 +486,13 @@ window.CvlsGeobollatura = (function () {
             nomeSede: nomeSede
         };
 
-        // Rimuovi check-in attivo da localStorage
-        clearActiveAttendance();
+        const salvato = inviaBollatura("uscita", checkoutInfo);
+        if (salvato !== true) {
+            updateUI();
+            return;
+        }
 
-        // Registra la bollatura localmente e in pending
-        inviaBollatura("uscita", checkoutInfo);
+        clearActiveAttendance();
         syncBollatureRegistroPresenzeAuto();
 
         cvlsAlert("Uscita dal lavoro registrata con successo!", "Bollatura effettuata");
@@ -561,6 +643,33 @@ window.CvlsGeobollatura = (function () {
     }
 
     function inviaBollatura(tipo, info) {
+        const tipoNorm = String(tipo || "").toLowerCase();
+        const infoTime = info && info.time ? info.time : new Date().toISOString();
+        const todayYMD = cvlsFormatLocalDateYMD(infoTime);
+        const state = cvlsGetDailyAttendanceState(todayYMD);
+        const activeCheckin = getActiveAttendance();
+        const activeToday = cvlsIsActiveAttendanceForDate(activeCheckin, todayYMD);
+
+        if (tipoNorm === "ingresso") {
+            if (state === "ACTIVE") {
+                cvlsAlert("Un ingresso è già attivo. È possibile effettuare soltanto l'uscita.", "Bollatura non consentita");
+                return false;
+            }
+            if (state === "COMPLETED") {
+                cvlsAlert("La bollatura della giornata è già stata completata.", "Bollatura non consentita");
+                return false;
+            }
+        } else if (tipoNorm === "uscita") {
+            if (state === "COMPLETED") {
+                cvlsAlert("La bollatura della giornata è già stata completata.", "Bollatura non consentita");
+                return false;
+            }
+            if (state === "EMPTY" || !activeToday) {
+                cvlsAlert("Nessun ingresso attivo trovato per registrare l'uscita.", "Bollatura non consentita");
+                return false;
+            }
+        }
+
         const tecnico = localStorage.getItem("cvls_user_name") || "Tecnico";
 
         const bollaturaRecord = {
@@ -630,6 +739,8 @@ window.CvlsGeobollatura = (function () {
                 regola_calcolo: bollaturaRecord.regola_calcolo
             }
         });
+
+        return true;
     }
 
     function syncBollatureRegistroPresenzeAuto() {
@@ -744,15 +855,22 @@ window.CvlsGeobollatura = (function () {
         }
 
         // Se non autorizzato: disabilita entrambi i pulsanti
+        const attendanceState = cvlsGetDailyAttendanceState();
         if (!isAuthorized) {
             disableBtn(ingressoBtn);
             disableBtn(uscitaBtn);
         } else {
-            // Autorizzato: logica normale Ingresso/Uscita in base a activeCheckin
-            if (activeCheckin) {
+            // Autorizzato: logica Ingresso/Uscita in base allo stato con priorita COMPLETED > ACTIVE > EMPTY
+            if (attendanceState === "COMPLETED") {
+                disableBtn(ingressoBtn);
+                disableBtn(uscitaBtn);
+                if (distText) {
+                    distText.textContent = "La bollatura della giornata è già stata completata.";
+                }
+            } else if (attendanceState === "ACTIVE") {
                 disableBtn(ingressoBtn);
                 enableBtn(uscitaBtn);
-            } else {
+            } else { // EMPTY
                 enableBtn(ingressoBtn);
                 disableBtn(uscitaBtn);
             }
@@ -790,205 +908,255 @@ window.CvlsGeobollatura = (function () {
     }
 
     async function registraIngressoRegistroPresenze() {
-        if (!currentCoords) {
-            cvlsAlert("Errore GPS: Impossibile acquisire la posizione. Assicurati che il GPS del dispositivo sia attivo e di aver concesso i permessi all'applicazione.", "GPS non disponibile");
+        if (isBollaturaInCorso) {
+            console.warn("[CVLS] Bollatura già in corso, richiesta ignorata.");
             return;
         }
+        isBollaturaInCorso = true;
 
-        const activeCheckin = getActiveCheckin();
-        if (activeCheckin) return;
+        try {
+            if (!currentCoords) {
+                cvlsAlert("Errore GPS: Impossibile acquisire la posizione. Assicurati che il GPS del dispositivo sia attivo e di aver concesso i permessi all'applicazione.", "GPS non disponibile");
+                return;
+            }
 
-        const selectedNames = getRegistroPresenzeSelectedNames(null, null, []);
-        const selectedPresidioName = selectedNames.cittaNome;
-        const selectedUbicazioneName = selectedNames.cantiereNome;
+            const activeCheckin = getActiveCheckin();
+            const todayYMD = cvlsFormatLocalDateYMD(new Date());
+            const activeToday = cvlsIsActiveAttendanceForDate(activeCheckin, todayYMD);
+            const attendanceState = cvlsGetDailyAttendanceState(todayYMD);
 
-        const nomeSede = localStorage.getItem("cvls_bollatura_nome_sede") || "Ozegna (Sede)";
-        const latTarget = parseFloat(localStorage.getItem("cvls_bollatura_latitudine") || "45.3496");
-        const lonTarget = parseFloat(localStorage.getItem("cvls_bollatura_longitudine") || "7.7470");
-        const raggioTarget = parseFloat(localStorage.getItem("cvls_bollatura_raggio") || "200");
+            if (attendanceState === "COMPLETED") {
+                cvlsAlert("La bollatura della giornata è già stata completata.", "Bollatura non consentita");
+                return;
+            }
+            if (attendanceState === "ACTIVE" || activeToday) {
+                cvlsAlert("Un ingresso è già attivo. È possibile effettuare soltanto l'uscita.", "Bollatura non consentita");
+                return;
+            }
 
-        let distance = null;
-        let isWithinRange = true;
-        let statoGps = "in_zona";
+            const selectedNames = getRegistroPresenzeSelectedNames(null, null, []);
+            const selectedPresidioName = selectedNames.cittaNome;
+            const selectedUbicazioneName = selectedNames.cantiereNome;
 
-        if (!isNaN(latTarget) && !isNaN(lonTarget)) {
-            distance = getDistance(
-                currentCoords.latitude,
-                currentCoords.longitude,
-                latTarget,
-                lonTarget
-            );
-            isWithinRange = distance <= raggioTarget;
-            statoGps = isWithinRange ? "in_zona" : "non_autorizzato";
-        } else {
-            isWithinRange = false;
-            statoGps = "non_autorizzato";
-        }
+            const nomeSede = localStorage.getItem("cvls_bollatura_nome_sede") || "Ozegna (Sede)";
+            const latTarget = parseFloat(localStorage.getItem("cvls_bollatura_latitudine") || "45.3496");
+            const lonTarget = parseFloat(localStorage.getItem("cvls_bollatura_longitudine") || "7.7470");
+            const raggioTarget = parseFloat(localStorage.getItem("cvls_bollatura_raggio") || "200");
 
-        if (!isWithinRange) {
-            cvlsAlert("Bollatura non consentita: posizione non autorizzata.", "Non autorizzato");
+            let distance = null;
+            let isWithinRange = true;
+            let statoGps = "in_zona";
+
+            if (!isNaN(latTarget) && !isNaN(lonTarget)) {
+                distance = getDistance(
+                    currentCoords.latitude,
+                    currentCoords.longitude,
+                    latTarget,
+                    lonTarget
+                );
+                isWithinRange = distance <= raggioTarget;
+                statoGps = isWithinRange ? "in_zona" : "non_autorizzato";
+            } else {
+                isWithinRange = false;
+                statoGps = "non_autorizzato";
+            }
+
+            if (!isWithinRange) {
+                cvlsAlert("Bollatura non consentita: posizione non autorizzata.", "Non autorizzato");
+                updatePageUI();
+                return;
+            }
+
+            const now = new Date().toISOString();
+            const checkinInfo = {
+                time: now,
+                lat: currentCoords.latitude,
+                lon: currentCoords.longitude,
+                statoGps: statoGps,
+                nomeSede: nomeSede,
+                cittaNome: selectedPresidioName,
+                cantiereNome: selectedUbicazioneName,
+                luoghi: selectedNames.luoghi
+            };
+
+            const confermato = await confirmRegistroPresenzeBollatura("ingresso");
+            if (!confermato) {
+                updatePageUI();
+                return;
+            }
+
+            const salvato = inviaBollatura("ingresso", checkinInfo);
+            if (salvato !== true) {
+                updatePageUI();
+                return;
+            }
+
+            setActiveAttendance(checkinInfo);
+            window.registroPresenzeLuogoTouched = true;
+
+            syncBollatureRegistroPresenzeAuto();
+
+            cvlsAlert("Ingresso al lavoro registrato con successo!", "Bollatura effettuata");
+
+            updateUI();
             updatePageUI();
-            return;
-        }
-
-        const now = new Date().toISOString();
-        const checkinInfo = {
-            time: now,
-            lat: currentCoords.latitude,
-            lon: currentCoords.longitude,
-            statoGps: statoGps,
-            nomeSede: nomeSede,
-            cittaNome: selectedPresidioName,
-            cantiereNome: selectedUbicazioneName,
-            luoghi: selectedNames.luoghi
-        };
-
-        const confermato = await confirmRegistroPresenzeBollatura("ingresso");
-        if (!confermato) {
-            updatePageUI();
-            return;
-        }
-
-        setActiveAttendance(checkinInfo);
-        window.registroPresenzeLuogoTouched = true;
-
-        inviaBollatura("ingresso", checkinInfo);
-        syncBollatureRegistroPresenzeAuto();
-
-        cvlsAlert("Ingresso al lavoro registrato con successo!", "Bollatura effettuata");
-
-        updateUI();
-        updatePageUI();
-
-        if (typeof window.updateRegistroPresenzePranzoUI === "function") {
-            window.updateRegistroPresenzePranzoUI();
-        }
-    }
-
-    async function registraUscitaRegistroPresenze() {
-        if (!currentCoords) {
-            cvlsAlert("Errore GPS: Impossibile acquisire la posizione. Assicurati che il GPS del dispositivo sia attivo e di aver concesso i permessi all'applicazione.", "GPS non disponibile");
-            return;
-        }
-
-        const activeCheckin = getActiveCheckin();
-        if (!activeCheckin) return;
-
-        const pausaPranzo = typeof window.getRegistroPresenzePranzoSelection === "function"
-            ? window.getRegistroPresenzePranzoSelection()
-            : "";
-
-        if (!pausaPranzo) {
-            cvlsAlert("Seleziona la pausa pranzo prima di bollare l'uscita.", "Pranzo");
 
             if (typeof window.updateRegistroPresenzePranzoUI === "function") {
                 window.updateRegistroPresenzePranzoUI();
             }
+        } finally {
+            isBollaturaInCorso = false;
+        }
+    }
 
+    async function registraUscitaRegistroPresenze() {
+        if (isBollaturaInCorso) {
+            console.warn("[CVLS] Bollatura già in corso, richiesta ignorata.");
             return;
         }
+        isBollaturaInCorso = true;
 
-        const radioSi = document.getElementById("regPresDirittoPranzoSi");
-        const radioNo = document.getElementById("regPresDirittoPranzoNo");
-        if (!radioSi.checked && !radioNo.checked) {
-            cvlsAlert("Indica se hai diritto al pranzo.", "Diritto Pranzo");
-            return;
-        }
-        const dirittoPranzo = radioSi.checked;
+        try {
+            if (!currentCoords) {
+                cvlsAlert("Errore GPS: Impossibile acquisire la posizione. Assicurati che il GPS del dispositivo sia attivo e di aver concesso i permessi all'applicazione.", "GPS non disponibile");
+                return;
+            }
 
-        const selectedNames = getRegistroPresenzeSelectedNames(
-            activeCheckin.cittaNome || null,
-            activeCheckin.cantiereNome || null,
-            activeCheckin.luoghi || []
-        );
-        const selectedPresidioName = selectedNames.cittaNome;
-        const selectedUbicazioneName = selectedNames.cantiereNome;
+            const activeCheckin = getActiveCheckin();
+            const todayYMD = cvlsFormatLocalDateYMD(new Date());
+            const activeToday = cvlsIsActiveAttendanceForDate(activeCheckin, todayYMD);
+            const attendanceState = cvlsGetDailyAttendanceState(todayYMD);
 
-        const nomeSede = activeCheckin.nomeSede || localStorage.getItem("cvls_bollatura_nome_sede") || "Ozegna (Sede)";
-        const latTarget = parseFloat(localStorage.getItem("cvls_bollatura_latitudine") || "45.3496");
-        const lonTarget = parseFloat(localStorage.getItem("cvls_bollatura_longitudine") || "7.7470");
-        const raggioTarget = parseFloat(localStorage.getItem("cvls_bollatura_raggio") || "200");
+            if (attendanceState === "COMPLETED") {
+                cvlsAlert("La bollatura della giornata è già stata completata.", "Bollatura non consentita");
+                return;
+            }
+            if (attendanceState === "EMPTY" || !activeToday) {
+                cvlsAlert("Nessun ingresso attivo trovato per registrare l'uscita.", "Bollatura non consentita");
+                return;
+            }
 
-        let distance = null;
-        let isWithinRange = true;
-        let statoGps = "in_zona";
+            const pausaPranzo = typeof window.getRegistroPresenzePranzoSelection === "function"
+                ? window.getRegistroPresenzePranzoSelection()
+                : "";
 
-        if (!isNaN(latTarget) && !isNaN(lonTarget)) {
-            distance = getDistance(
-                currentCoords.latitude,
-                currentCoords.longitude,
-                latTarget,
-                lonTarget
+            if (!pausaPranzo) {
+                cvlsAlert("Seleziona la pausa pranzo prima di bollare l'uscita.", "Pranzo");
+
+                if (typeof window.updateRegistroPresenzePranzoUI === "function") {
+                    window.updateRegistroPresenzePranzoUI();
+                }
+
+                return;
+            }
+
+            const radioSi = document.getElementById("regPresDirittoPranzoSi");
+            const radioNo = document.getElementById("regPresDirittoPranzoNo");
+            if (!radioSi.checked && !radioNo.checked) {
+                cvlsAlert("Indica se hai diritto al pranzo.", "Diritto Pranzo");
+                return;
+            }
+            const dirittoPranzo = radioSi.checked;
+
+            const selectedNames = getRegistroPresenzeSelectedNames(
+                activeCheckin.cittaNome || null,
+                activeCheckin.cantiereNome || null,
+                activeCheckin.luoghi || []
             );
-            isWithinRange = distance <= raggioTarget;
-            statoGps = isWithinRange ? "in_zona" : "non_autorizzato";
-        } else {
-            isWithinRange = false;
-            statoGps = "non_autorizzato";
-        }
+            const selectedPresidioName = selectedNames.cittaNome;
+            const selectedUbicazioneName = selectedNames.cantiereNome;
 
-        if (!isWithinRange) {
-            cvlsAlert("Bollatura non consentita: posizione non autorizzata.", "Non autorizzato");
+            const nomeSede = activeCheckin.nomeSede || localStorage.getItem("cvls_bollatura_nome_sede") || "Ozegna (Sede)";
+            const latTarget = parseFloat(localStorage.getItem("cvls_bollatura_latitudine") || "45.3496");
+            const lonTarget = parseFloat(localStorage.getItem("cvls_bollatura_longitudine") || "7.7470");
+            const raggioTarget = parseFloat(localStorage.getItem("cvls_bollatura_raggio") || "200");
+
+            let distance = null;
+            let isWithinRange = true;
+            let statoGps = "in_zona";
+
+            if (!isNaN(latTarget) && !isNaN(lonTarget)) {
+                distance = getDistance(
+                    currentCoords.latitude,
+                    currentCoords.longitude,
+                    latTarget,
+                    lonTarget
+                );
+                isWithinRange = distance <= raggioTarget;
+                statoGps = isWithinRange ? "in_zona" : "non_autorizzato";
+            } else {
+                isWithinRange = false;
+                statoGps = "non_autorizzato";
+            }
+
+            if (!isWithinRange) {
+                cvlsAlert("Bollatura non consentita: posizione non autorizzata.", "Non autorizzato");
+                updatePageUI();
+                return;
+            }
+
+            const checkoutTime = new Date().toISOString();
+            const totali = calculateRegistroPresenzeTotali(activeCheckin, checkoutTime, pausaPranzo);
+
+            const checkoutInfo = {
+                time: checkoutTime,
+                lat: currentCoords.latitude,
+                lon: currentCoords.longitude,
+                statoGps: statoGps,
+                nomeSede: nomeSede,
+                cittaNome: selectedPresidioName,
+                cantiereNome: selectedUbicazioneName,
+                luoghi: selectedNames.luoghi,
+                pausaPranzo: pausaPranzo,
+                diritto_pranzo: dirittoPranzo,
+                pausaPranzoMinuti: totali.pausaPranzoMinuti,
+                durataLordaMinuti: totali.durataLordaMinuti,
+                totaleLavoratoMinuti: totali.totaleLavoratoMinuti,
+                totaleLavoratoTesto: totali.totaleLavoratoTesto,
+                totaleCalcolatoMinuti: totali.totaleCalcolatoMinuti,
+                totaleCalcolatoTesto: totali.totaleCalcolatoTesto,
+                orePermessoMinuti: totali.orePermessoMinuti,
+                orePermessoTesto: totali.orePermessoTesto,
+                regolaCalcolo: totali.regolaCalcolo
+            };
+
+            const confermato = await confirmRegistroPresenzeBollatura("uscita");
+            if (!confermato) {
+                updatePageUI();
+                return;
+            }
+
+            const salvato = inviaBollatura("uscita", checkoutInfo);
+            if (salvato !== true) {
+                updatePageUI();
+                return;
+            }
+
+            clearActiveAttendance();
+            syncBollatureRegistroPresenzeAuto();
+
+            if (typeof window.resetRegistroPresenzeLuogoSelections === "function") {
+                window.resetRegistroPresenzeLuogoSelections();
+            } else {
+                window.selectedRegistroPresenzePresidi = [];
+                window.selectedRegistroPresenzeUbicazioni = [];
+                window.selectedRegistroPresenzeLuoghi = [];
+                window.registroPresenzeLuogoTouched = false;
+            }
+
+            if (typeof window.resetRegistroPresenzePranzoSelection === "function") {
+                window.resetRegistroPresenzePranzoSelection();
+            } else {
+                window.selectedRegistroPresenzePranzo = "";
+            }
+
+            cvlsAlert("Uscita dal lavoro registrata con successo!", "Bollatura effettuata");
+
+            updateUI();
             updatePageUI();
-            return;
+        } finally {
+            isBollaturaInCorso = false;
         }
-
-        const checkoutTime = new Date().toISOString();
-        const totali = calculateRegistroPresenzeTotali(activeCheckin, checkoutTime, pausaPranzo);
-
-        const checkoutInfo = {
-            time: checkoutTime,
-            lat: currentCoords.latitude,
-            lon: currentCoords.longitude,
-            statoGps: statoGps,
-            nomeSede: nomeSede,
-            cittaNome: selectedPresidioName,
-            cantiereNome: selectedUbicazioneName,
-            luoghi: selectedNames.luoghi,
-            pausaPranzo: pausaPranzo,
-            diritto_pranzo: dirittoPranzo,
-            pausaPranzoMinuti: totali.pausaPranzoMinuti,
-            durataLordaMinuti: totali.durataLordaMinuti,
-            totaleLavoratoMinuti: totali.totaleLavoratoMinuti,
-            totaleLavoratoTesto: totali.totaleLavoratoTesto,
-            totaleCalcolatoMinuti: totali.totaleCalcolatoMinuti,
-            totaleCalcolatoTesto: totali.totaleCalcolatoTesto,
-            orePermessoMinuti: totali.orePermessoMinuti,
-            orePermessoTesto: totali.orePermessoTesto,
-            regolaCalcolo: totali.regolaCalcolo
-        };
-
-        const confermato = await confirmRegistroPresenzeBollatura("uscita");
-        if (!confermato) {
-            updatePageUI();
-            return;
-        }
-
-        clearActiveAttendance();
-
-        inviaBollatura("uscita", checkoutInfo);
-        syncBollatureRegistroPresenzeAuto();
-
-        // Reset le selezioni dopo uscita. I valori sono gia' stati copiati in checkoutInfo.
-        if (typeof window.resetRegistroPresenzeLuogoSelections === "function") {
-            window.resetRegistroPresenzeLuogoSelections();
-        } else {
-            window.selectedRegistroPresenzePresidi = [];
-            window.selectedRegistroPresenzeUbicazioni = [];
-            window.selectedRegistroPresenzeLuoghi = [];
-            window.registroPresenzeLuogoTouched = false;
-        }
-
-        if (typeof window.resetRegistroPresenzePranzoSelection === "function") {
-            window.resetRegistroPresenzePranzoSelection();
-        } else {
-            window.selectedRegistroPresenzePranzo = "";
-        }
-
-        cvlsAlert("Uscita dal lavoro registrata con successo!", "Bollatura effettuata");
-
-        updateUI();
-        updatePageUI();
     }
 
     function updateActiveCheckin(data) {
